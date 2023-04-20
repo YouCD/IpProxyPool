@@ -6,7 +6,7 @@ IMPORT_PATH		:=IpProxyPool/common
 BUILD_TIME		:=$(shell date "+%F %T")
 COMMIT_ID       :=$(shell git rev-parse HEAD)
 GO_VERSION      :=$(shell $(GOCMD) version)
-VERSION			:=v1.0.0
+VERSION			:=$(shell git describe --tags)
 BUILD_USER		:=$(shell whoami)
 
 FLAG			:="-w -s -X '${IMPORT_PATH}.BuildTime=${BUILD_TIME}' -X '${IMPORT_PATH}.CommitID=${COMMIT_ID}' -X '${IMPORT_PATH}.GoVersion=${GO_VERSION}'  -X '${IMPORT_PATH}.Version=${VERSION}' -X '${IMPORT_PATH}.BuildUser=${BUILD_USER}'"

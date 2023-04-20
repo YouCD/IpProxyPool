@@ -1,30 +1,30 @@
 package kuaidaili
 
 import (
+	"IpProxyPool/fetcher"
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	logger "github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/fetcher"
-	"github.com/wuchunfu/IpProxyPool/models/ipModel"
-	"github.com/wuchunfu/IpProxyPool/util"
 	"strconv"
 	"strings"
 )
 
 // 国内高匿代理
-func KuaiDaiLiInha() []*ipModel.IP {
+func KuaiDaiLiInha() []*database.IP {
 	return KuaiDaiLi("inha")
 }
 
 // 国内普通代理
-func KuaiDaiLiIntr() []*ipModel.IP {
+func KuaiDaiLiIntr() []*database.IP {
 	return KuaiDaiLi("intr")
 }
 
-func KuaiDaiLi(proxyType string) []*ipModel.IP {
+func KuaiDaiLi(proxyType string) []*database.IP {
 	logger.Info("[kuaidaili] fetch start")
 
-	list := make([]*ipModel.IP, 0)
+	list := make([]*database.IP, 0)
 
 	indexUrl := "https://www.kuaidaili.com/free"
 	fetchIndex := fetcher.Fetch(indexUrl)
@@ -41,7 +41,7 @@ func KuaiDaiLi(proxyType string) []*ipModel.IP {
 				proxyLocation := strings.TrimSpace(selection.Find("td:nth-child(5)").Text())
 				proxySpeed := strings.TrimSpace(selection.Find("td:nth-child(6)").Text())
 
-				ip := new(ipModel.IP)
+				ip := new(database.IP)
 				ip.ProxyHost = proxyIp
 				ip.ProxyPort, _ = strconv.Atoi(proxyPort)
 				ip.ProxyType = proxyType

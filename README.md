@@ -61,20 +61,19 @@ dbName: IpProxyPool
 username: IpProxyPool
 password: IpProxyPool
 
-# 执行 sql 脚本，创建数据库表
-source docs/db/mysql.sql
+
 
 # 安装go依赖包
 go list (go mod tidy)
 
 # 编译
-go build IpProxyPool.go
+go build main.go
 
 # 赋予可执行权限
 chmod +x IpProxyPool
 
 # 运行
-./IpProxyPool proxy-pool
+./IpProxyPool -f conf/config.yaml
 ```
 
 ### Docker 安装
@@ -127,8 +126,3 @@ curl http://127.0.0.1:3000/https
 ## 注意
 本代码库仅用于学习研究使用，请勿用于非法用途，本人不承担由此带来的任何法律问题。
 
-## 交流
-
-欢迎关注 **全栈公园** ，有什么问题可以在 **全栈公园** 公众号输入 **开源交流** 进行咨询
-
-![全栈公园](./docs/images/FullStackPark.jpg)

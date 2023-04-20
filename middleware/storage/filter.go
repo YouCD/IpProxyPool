@@ -1,10 +1,10 @@
 package storage
 
 import (
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/util/randomutil"
 	"crypto/tls"
 	"fmt"
-	"github.com/wuchunfu/IpProxyPool/models/ipModel"
-	"github.com/wuchunfu/IpProxyPool/util/randomutil"
 	"golang.org/x/net/http2"
 	"net"
 	"net/http"
@@ -16,14 +16,14 @@ import (
 )
 
 // CheckProxy .
-func CheckProxy(ip *ipModel.IP) {
+func CheckProxy(ip *database.IP) {
 	if CheckIp(ip) {
-		ipModel.SaveIp(ip)
+		database.SaveIp(ip)
 	}
 }
 
 // CheckIp is to check the ip work or not
-func CheckIp(ip *ipModel.IP) bool {
+func CheckIp(ip *database.IP) bool {
 	// 检测代理iP访问地址
 	var testIp string
 	var testUrl string
@@ -79,7 +79,7 @@ func CheckIp(ip *ipModel.IP) bool {
 		// 判断是否成功访问，如果成功访问StatusCode应该为200
 		speed := time.Now().Sub(begin).Nanoseconds() / 1000 / 1000 //ms
 		ip.ProxySpeed = int(speed)
-		ipModel.UpdateIp(ip)
+		database.UpdateIp(ip)
 		return true
 	}
 	return false
@@ -87,59 +87,59 @@ func CheckIp(ip *ipModel.IP) bool {
 
 // CheckProxyDB to check the ip in DB
 func CheckProxyDB() {
-	record := ipModel.CountIp()
+	record := database.CountIp()
 	logger.Infof("Before check, DB has: %d records.", record)
-	ips := ipModel.GetAllIp()
+	ips := database.GetAllIp()
 
 	var wg sync.WaitGroup
 	for _, v := range ips {
 		wg.Add(1)
-		go func(ip ipModel.IP) {
+		go func(ip database.IP) {
 			if !CheckIp(&ip) {
-				ipModel.DeleteIp(&ip)
+				database.DeleteIp(&ip)
 			}
 			wg.Done()
 		}(v)
 	}
 	wg.Wait()
-	record = ipModel.CountIp()
+	record = database.CountIp()
 	logger.Infof("After check, DB has: %d records.", record)
 }
 
 // AllProxy .
-func AllProxy() []ipModel.IP {
-	ips := ipModel.GetAllIp()
+func AllProxy() []database.IP {
+	ips := database.GetAllIp()
 	ipCount := len(ips)
 	if ipCount == 0 {
 		logger.Warnf("RandomProxy random count: %d\n", ipCount)
-		return []ipModel.IP{}
+		return []database.IP{}
 	}
 	return ips
 }
 
 // RandomProxy .
-func RandomProxy() (ip ipModel.IP) {
-	ips := ipModel.GetAllIp()
+func RandomProxy() (ip database.IP) {
+	ips := database.GetAllIp()
 	ipCount := len(ips)
 	if ipCount == 0 {
 		logger.Warnf("RandomProxy random count: %d\n", ipCount)
-		return ipModel.IP{}
+		return database.IP{}
 	}
 	randomNum := randomutil.RandInt(0, ipCount)
 	return ips[randomNum]
 }
 
 // RandomByProxyType .
-func RandomByProxyType(proxyType string) (ip ipModel.IP) {
-	ips, err := ipModel.GetIpByProxyType(proxyType)
+func RandomByProxyType(proxyType string) (ip database.IP) {
+	ips, err := database.GetIpByProxyType(proxyType)
 	if err != nil {
 		logger.Warn(err.Error())
-		return ipModel.IP{}
+		return database.IP{}
 	}
 	ipCount := len(ips)
 	if ipCount == 0 {
 		logger.Warnf("RandomByProxyType random count: %d\n", ipCount)
-		return ipModel.IP{}
+		return database.IP{}
 	}
 	randomNum := randomutil.RandInt(0, ipCount)
 	return ips[randomNum]

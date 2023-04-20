@@ -1,33 +1,33 @@
 package ip3366
 
 import (
+	"IpProxyPool/fetcher"
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	logger "github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/fetcher"
-	"github.com/wuchunfu/IpProxyPool/models/ipModel"
-	"github.com/wuchunfu/IpProxyPool/util"
 	"strconv"
 	"strings"
 )
 
 // 国内高匿代理
-func Ip33661() []*ipModel.IP {
+func Ip33661() []*database.IP {
 	return Ip3366(1)
 }
 
 // 国内普通代理
-func Ip33662() []*ipModel.IP {
+func Ip33662() []*database.IP {
 	return Ip3366(2)
 }
 
-func Ip3366(proxyType int) []*ipModel.IP {
+func Ip3366(proxyType int) []*database.IP {
 	logger.Info("[ip3366] fetch start")
 	defer func() {
 		recover()
 		logger.Warnln("[ip3366] fetch error")
 	}()
-	list := make([]*ipModel.IP, 0)
+	list := make([]*database.IP, 0)
 
 	indexUrl := "http://www.ip3366.net/free"
 	fetchIndex := fetcher.Fetch(indexUrl)
@@ -44,7 +44,7 @@ func Ip3366(proxyType int) []*ipModel.IP {
 				proxyLocation := strings.TrimSpace(selection.Find("td:nth-child(5)").Text())
 				proxySpeed := strings.TrimSpace(selection.Find("td:nth-child(6)").Text())
 
-				ip := new(ipModel.IP)
+				ip := new(database.IP)
 				ip.ProxyHost = proxyIp
 				ip.ProxyPort, _ = strconv.Atoi(proxyPort)
 				ip.ProxyType = proxyType

@@ -1,23 +1,23 @@
 package ip89
 
 import (
+	"IpProxyPool/fetcher"
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	logger "github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/fetcher"
-	"github.com/wuchunfu/IpProxyPool/models/ipModel"
-	"github.com/wuchunfu/IpProxyPool/util"
 	"strconv"
 	"strings"
 )
 
-func Ip89() []*ipModel.IP {
+func Ip89() []*database.IP {
 	logger.Info("[89ip] fetch start")
 	defer func() {
 		recover()
 		logger.Warnln("[89ip] fetch error")
 	}()
-	list := make([]*ipModel.IP, 0)
+	list := make([]*database.IP, 0)
 
 	indexUrl := "https://www.89ip.cn/"
 	fetchIndex := fetcher.Fetch(indexUrl)
@@ -32,7 +32,7 @@ func Ip89() []*ipModel.IP {
 				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())
 				proxyLocation := strings.TrimSpace(selection.Find("td:nth-child(3)").Text())
 
-				ip := new(ipModel.IP)
+				ip := new(database.IP)
 				ip.ProxyHost = proxyIp
 				ip.ProxyPort, _ = strconv.Atoi(proxyPort)
 				ip.ProxyType = "http"

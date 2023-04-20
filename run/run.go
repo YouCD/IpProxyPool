@@ -1,18 +1,18 @@
 package run
 
 import (
+	"IpProxyPool/fetcher/ip3366"
+	"IpProxyPool/fetcher/ip66"
+	"IpProxyPool/fetcher/ip89"
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/middleware/storage"
 	logger "github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/fetcher/ip3366"
-	"github.com/wuchunfu/IpProxyPool/fetcher/ip66"
-	"github.com/wuchunfu/IpProxyPool/fetcher/ip89"
-	"github.com/wuchunfu/IpProxyPool/middleware/storage"
-	"github.com/wuchunfu/IpProxyPool/models/ipModel"
 	"sync"
 	"time"
 )
 
 func Task() {
-	ipChan := make(chan *ipModel.IP, 2000)
+	ipChan := make(chan *database.IP, 2000)
 
 	// Check the IPs in DB
 	go func() {
@@ -30,7 +30,7 @@ func Task() {
 
 	// Start getters to scraper IP and put it in channel
 	for {
-		nums := ipModel.CountIp()
+		nums := database.CountIp()
 		logger.Printf("Chan: %v, IP: %d\n", len(ipChan), nums)
 		if len(ipChan) < 100 {
 			go run(ipChan)
@@ -39,9 +39,9 @@ func Task() {
 	}
 }
 
-func run(ipChan chan<- *ipModel.IP) {
+func run(ipChan chan<- *database.IP) {
 	var wg sync.WaitGroup
-	siteFuncList := []func() []*ipModel.IP{
+	siteFuncList := []func() []*database.IP{
 		ip66.Ip66,
 		ip89.Ip89,
 		ip3366.Ip33661,
@@ -52,7 +52,7 @@ func run(ipChan chan<- *ipModel.IP) {
 	}
 	for _, siteFunc := range siteFuncList {
 		wg.Add(1)
-		go func(siteFunc func() []*ipModel.IP) {
+		go func(siteFunc func() []*database.IP) {
 			temp := siteFunc()
 			for _, v := range temp {
 				ipChan <- v

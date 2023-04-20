@@ -1,10 +1,10 @@
 package fetcher
 
 import (
+	"IpProxyPool/util/headerutil"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/util/headerutil"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/net/publicsuffix"
 	"io"

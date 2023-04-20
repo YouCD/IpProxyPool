@@ -1,10 +1,10 @@
 package main
 
 import (
+	"IpProxyPool/util/iputil"
 	"context"
 	"fmt"
 	logger "github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/util/iputil"
 	"net/http"
 	"os"
 	"os/signal"

@@ -1,20 +1,20 @@
 package proxylistplus
 
 import (
+	"IpProxyPool/fetcher"
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	logger "github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/fetcher"
-	"github.com/wuchunfu/IpProxyPool/models/ipModel"
-	"github.com/wuchunfu/IpProxyPool/util"
 	"strconv"
 	"strings"
 )
 
-func ProxyListPlus() []*ipModel.IP {
+func ProxyListPlus() []*database.IP {
 	logger.Info("[proxylistplus] fetch start")
 
-	list := make([]*ipModel.IP, 0)
+	list := make([]*database.IP, 0)
 
 	indexUrl := "https://list.proxylistplus.com"
 	for i := 1; i <= 6; i++ {
@@ -26,7 +26,7 @@ func ProxyListPlus() []*ipModel.IP {
 				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(3)").Text())
 				proxyLocation := strings.TrimSpace(selection.Find("td:nth-child(5)").Text())
 
-				ip := new(ipModel.IP)
+				ip := new(database.IP)
 				ip.ProxyHost = proxyIp
 				ip.ProxyPort, _ = strconv.Atoi(proxyPort)
 				ip.ProxyType = "http"

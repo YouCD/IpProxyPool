@@ -1,11 +1,11 @@
 package config
 
 import (
+	"IpProxyPool/util/fileutil"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/wuchunfu/IpProxyPool/util/fileutil"
 	"os"
 )
 
@@ -16,19 +16,11 @@ type System struct {
 }
 
 type Database struct {
-	DbType       string `yaml:"dbType"`
-	Host         string `yaml:"host"`
-	Port         int    `yaml:"port"`
-	DbName       string `yaml:"dbName"`
-	Username     string `yaml:"username"`
-	Password     string `yaml:"password"`
-	Prefix       string `yaml:"prefix"`
-	Charset      string `yaml:"charset"`
-	MaxIdleConns int    `yaml:"maxIdleConns"`
-	MaxOpenConns int    `yaml:"maxOpenConns"`
-	Level        string `yaml:"level"`
-	SslMode      string `yaml:"sslMode"`
-	TimeZone     string `yaml:"timeZone"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	DbName   string `yaml:"dbName"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 type Log struct {

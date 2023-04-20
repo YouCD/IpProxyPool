@@ -8,22 +8,12 @@ system:
 
 # mysql
 database:
-  dbType: mysql
   host: 127.0.0.1
   port: 3306
-  dbName: test
+  dbName: IpProxyPool
   username: root
-  password: root
-  prefix: proxy_
-  charset: utf8mb4
-  maxIdleConns: 5
-  maxOpenConns: 100
-  # Either "silent", "info", "warn", "error", default is "silent"
-  level: silent
-  # For "postgres" only, either "disable", "require" or "verify-full", default is "disable"
-  sslMode: disable
-  # For "postgres" only, either "Asia/Shanghai", default is "Asia/Shanghai"
-  timeZone: Asia/Shanghai
+  password: 'P@ssw0rd'
+
 
 # logger configuration
 log:

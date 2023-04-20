@@ -1,14 +1,14 @@
 package logutil
 
 import (
+	"IpProxyPool/middleware/config"
+	"IpProxyPool/util/fileutil"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/middleware/config"
-	"github.com/wuchunfu/IpProxyPool/util/fileutil"
 	"io"
 	"os"
 	"path"

@@ -1,13 +1,14 @@
 package api
 
 import (
+	"IpProxyPool/middleware/config"
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/middleware/storage"
+	"IpProxyPool/util/iputil"
 	"context"
 	"encoding/json"
 	"fmt"
 	logger "github.com/sirupsen/logrus"
-	"github.com/wuchunfu/IpProxyPool/middleware/config"
-	"github.com/wuchunfu/IpProxyPool/middleware/storage"
-	"github.com/wuchunfu/IpProxyPool/util/iputil"
 	"net/http"
 	"time"
 )
@@ -20,6 +21,7 @@ func Run(setting *config.System) {
 	mux.HandleFunc("/all", ProxyAllHandler)
 	mux.HandleFunc("/http", ProxyHttpHandler)
 	mux.HandleFunc("/https", ProxyHttpsHandler)
+	mux.HandleFunc("/count", CountHandler)
 
 	server := &http.Server{
 		Addr:           setting.HttpAddr + ":" + setting.HttpPort,
@@ -51,6 +53,19 @@ func Run(setting *config.System) {
 	logger.Println("Server exiting")
 }
 
+func CountHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == "GET" {
+		writer.Header().Set("content-type", "application/json")
+		count := database.Count()
+		b, err := json.Marshal(count)
+		if err != nil {
+			return
+		}
+		writer.Write(b)
+	}
+
+}
+
 // IndexHandler .
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
@@ -60,6 +75,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		apiMap["/all"] = "获取随机的一个 http 或 https 类型的代理IP"
 		apiMap["/http"] = "获取随机的一个 http 类型的代理IP"
 		apiMap["/https"] = "获取随机的一个 https 类型的代理IP"
+		apiMap["/count"] = "统计信息"
 		b, err := json.Marshal(apiMap)
 		if err != nil {
 			return

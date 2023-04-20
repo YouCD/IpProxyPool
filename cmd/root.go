@@ -1,0 +1,69 @@
+package cmd
+
+import (
+	"IpProxyPool/api"
+	"IpProxyPool/common"
+	"IpProxyPool/middleware/config"
+	"IpProxyPool/middleware/database"
+	"IpProxyPool/middleware/logutil"
+	"IpProxyPool/run"
+	"fmt"
+	"github.com/spf13/cobra"
+	"os"
+)
+
+const name = "IpProxyPool"
+
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   name,
+	Short: "Main application",
+	Run: func(cmd *cobra.Command, args []string) {
+		if config.ConfigFile == "" {
+			fmt.Println("config file is empty")
+			os.Exit(1)
+		}
+		setting := config.ServerSetting
+
+		// 将日志写入文件或打印到控制台
+		logutil.InitLog(&setting.Log)
+		// 初始化数据库连接
+		database.InitDB(&setting.Database)
+
+		// Start HTTP
+		go func() {
+			api.Run(&setting.System)
+		}()
+
+		// Start Task
+		run.Task()
+		select {}
+	},
+}
+
+func init() {
+	cobra.OnInitialize(config.InitConfig)
+	rootCmd.PersistentFlags().StringVarP(&config.ConfigFile, "config", "f", "conf/config.yaml", "config file")
+	rootCmd.AddCommand(versionCmd)
+}
+
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+}
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: fmt.Sprintf("Print the version number of %s", name),
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("Version:   %s\n", common.Version)
+		fmt.Printf("CommitID:  %s\n", common.CommitID)
+		fmt.Printf("BuildTime: %s\n", common.BuildTime)
+		fmt.Printf("GoVersion: %s\n", common.GoVersion)
+		fmt.Printf("BuildUser: %s\n", common.BuildUser)
+	},
+}

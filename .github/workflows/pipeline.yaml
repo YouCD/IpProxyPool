@@ -1,13 +1,12 @@
 name: IpProxyPool pipeline
-
+permissions:
+  contents: write
 on:
   push:
     tags:
       - 'v*'
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -17,7 +16,6 @@ jobs:
           go-version: 1.16
       - name: fetch upx
         run: sh build.sh
-
       - name: Build
         run: make build-all
       - name: Upload binary file
@@ -26,9 +24,7 @@ jobs:
           name: IpProxyPool
           path: bin/*
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: JamesIves/github-pages-deploy-action@v4
         with: # 将下述可执行文件 release 上去
           files: |
             bin/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

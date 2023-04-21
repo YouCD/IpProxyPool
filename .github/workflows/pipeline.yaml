@@ -25,6 +25,5 @@ jobs:
           path: bin/*
       - name: Release
         uses: JamesIves/github-pages-deploy-action@v4
-        with: # 将下述可执行文件 release 上去
-          files: |
-            bin/*
+        with:
+          files: bin/*

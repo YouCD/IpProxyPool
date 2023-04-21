@@ -24,6 +24,9 @@ jobs:
           name: IpProxyPool
           path: bin/*
       - name: Release
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: bin
+        uses: softprops/action-gh-release@v1
+        with: # 将下述可执行文件 release 上去
+          files: |
+            bin/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

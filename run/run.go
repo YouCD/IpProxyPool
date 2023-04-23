@@ -14,9 +14,12 @@ import (
 func Task() {
 	ipChan := make(chan *database.IP, 2000)
 
-	// Check the IPs in DB
+	// 循环检测数据库中的IP
 	go func() {
-		storage.CheckProxyDB()
+		for {
+			storage.CheckProxyDB()
+			time.Sleep(30 * time.Minute)
+		}
 	}()
 
 	// Check the IPs in channel

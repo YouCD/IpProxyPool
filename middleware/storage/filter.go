@@ -4,85 +4,136 @@ import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/util/randomutil"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"golang.org/x/net/http2"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	logger "github.com/sirupsen/logrus"
 )
 
+const (
+	httpsHttpBin = "https://httpbin.org/get"
+	httpHttpBin  = "http://httpbin.org/get"
+)
+
 // CheckProxy .
 func CheckProxy(ip *database.IP) {
-	if CheckIp(ip) {
-		database.SaveIp(ip)
+	checkIp, ok := CheckIp(ip)
+	if ok {
+		database.SaveIp(checkIp)
 	}
 }
 
-// CheckIp is to check the ip work or not
-func CheckIp(ip *database.IP) bool {
+//
+// CheckIp
+//  @Description: 检测代理IP是否可用
+//  @param ip
+//  @return *database.IP
+//  @return bool
+//
+func CheckIp(ip *database.IP) (*database.IP, bool) {
 	// 检测代理iP访问地址
-	var testIp string
 	var testUrl string
-	if ip.ProxyType == "https" {
-		testIp = fmt.Sprintf("https://%s:%d", ip.ProxyHost, ip.ProxyPort)
-		testUrl = "https://httpbin.org/get"
+
+	if strings.ToLower(ip.ProxyType) == "http" {
+		testUrl = httpHttpBin
 	} else {
-		testIp = fmt.Sprintf("http://%s:%d", ip.ProxyHost, ip.ProxyPort)
-		testUrl = "http://httpbin.org/get"
+		testUrl = httpsHttpBin
 	}
-	// 解析代理地址
-	proxy, parseErr := url.Parse(testIp)
-	if parseErr != nil {
-		logger.Errorf("parse error: %v\n", parseErr.Error())
-		return false
+
+	for {
+		dialer, Proxy, newIP, err := CreateDialerAndProxy(ip)
+		if err != nil {
+			logger.Error(err)
+			return newIP, false
+		}
+		testIp := fmt.Sprintf("%s://%s:%d", newIP.ProxyType, newIP.ProxyHost, newIP.ProxyPort)
+
+		// 设置网络传输
+		netTransport := &http.Transport{
+			DialContext:           dialer.DialContext,
+			Proxy:                 Proxy,
+			DisableKeepAlives:     true,
+			MaxConnsPerHost:       20,
+			MaxIdleConns:          20,
+			MaxIdleConnsPerHost:   20,
+			IdleConnTimeout:       20 * time.Second,
+			ResponseHeaderTimeout: time.Second * time.Duration(10),
+			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		}
+		_ = http2.ConfigureTransport(netTransport)
+
+		// 创建连接客户端
+		httpClient := &http.Client{
+			Transport: netTransport,
+		}
+		begin := time.Now() //判断代理访问时间
+
+		// 使用代理IP访问测试地址
+		res, err := httpClient.Get(testUrl)
+		if err != nil {
+			logger.Debugf("testIp: %s, testUrl: %s: error msg: %v", testIp, testUrl, err.Error())
+		} else {
+			defer res.Body.Close()
+			if res.StatusCode == http.StatusOK {
+				// 判断是否成功访问，如果成功访问StatusCode应该为200
+				speed := time.Now().Sub(begin).Nanoseconds() / 1000 / 1000 //ms
+				ip.ProxySpeed = int(speed)
+				database.UpdateIp(ip)
+				return ip, true
+			}
+		}
+
+		// 切换协议类型
+		if strings.ToLower(ip.ProxyType) == "https" {
+			ip.ProxyType = "tcp"
+		} else {
+			break
+		}
+	}
+
+	return ip, false
+}
+
+func CreateDialerAndProxy(ip *database.IP) (*net.Dialer, func(*http.Request) (*url.URL, error), *database.IP, error) {
+	if ip == nil {
+		return nil, nil, ip, errors.New("proxy is empty")
 	}
 	dialer := &net.Dialer{
 		// 限制创建一个TCP连接使用的时间（如果需要一个新的链接）
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
-	//设置网络传输
-	netTransport := &http.Transport{
-		DialContext: dialer.DialContext,
-		Proxy:       http.ProxyURL(proxy),
-		// true为代表开启长连接
-		DisableKeepAlives: true,
-		MaxConnsPerHost:   20,
-		// 是长连接在关闭之前，连接池对所有host的最大链接数量
-		MaxIdleConns: 20,
-		// 连接池对每个host的最大链接数量(MaxIdleConnsPerHost <= MaxIdleConns,如果客户端只需要访问一个host，那么最好将MaxIdleConnsPerHost与MaxIdleConns设置为相同，这样逻辑更加清晰)
-		MaxIdleConnsPerHost: 20,
-		// 连接最大空闲时间，超过这个时间就会被关闭
-		IdleConnTimeout:       20 * time.Second,
-		ResponseHeaderTimeout: time.Second * time.Duration(10),
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-	}
-	_ = http2.ConfigureTransport(netTransport)
-	// 创建连接客户端
-	httpClient := &http.Client{
-		Transport: netTransport,
-	}
-	begin := time.Now() //判断代理访问时间
-	// 使用代理IP访问测试地址
-	res, err := httpClient.Get(testUrl)
-	if err != nil {
-		logger.Warnf("testIp: %s, testUrl: %s: error msg: %v", testIp, testUrl, err.Error())
-		return false
-	}
+	switch {
+	case strings.Contains(strings.ToLower(ip.ProxyType), "http"), strings.Contains(strings.ToLower(ip.ProxyType), "https"):
+		// 解析代理地址
+		proxy, err := url.Parse(strings.ToLower(fmt.Sprintf("%s://%s:%d", ip.ProxyType, ip.ProxyHost, ip.ProxyPort)))
+		if err != nil {
+			return nil, nil, ip, err
+		}
+		return dialer, http.ProxyURL(proxy), ip, nil
+	case strings.Contains(strings.ToLower(ip.ProxyType), "tcp"):
+		// 解析代理地址
 
-	defer res.Body.Close()
-	if res.StatusCode == http.StatusOK {
-		// 判断是否成功访问，如果成功访问StatusCode应该为200
-		speed := time.Now().Sub(begin).Nanoseconds() / 1000 / 1000 //ms
-		ip.ProxySpeed = int(speed)
-		database.UpdateIp(ip)
-		return true
+		conn, err := dialer.Dial("tcp", strings.ToLower(ip.ProxyHost+":"+strconv.Itoa(ip.ProxyPort)))
+		if err != nil {
+			logger.Error(err)
+			return nil, nil, ip, err
+		}
+		defer conn.Close()
+		//  变更代理类型为 tcp
+		ip.ProxyType = "tcp"
+		return dialer, nil, ip, err
+	default:
+		return nil, nil, ip, nil
 	}
-	return false
 }
 
 // CheckProxyDB to check the ip in DB
@@ -95,9 +146,12 @@ func CheckProxyDB() {
 	for _, v := range ips {
 		wg.Add(1)
 		go func(ip database.IP) {
-			if !CheckIp(&ip) {
+			newIP, ok := CheckIp(&ip)
+			if !ok {
 				database.DeleteIp(&ip)
 			}
+
+			database.UpdateIp(newIP)
 			wg.Done()
 		}(v)
 	}

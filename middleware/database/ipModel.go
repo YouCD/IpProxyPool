@@ -3,6 +3,7 @@ package database
 import (
 	"IpProxyPool/util"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 // IP struct
@@ -25,6 +26,7 @@ func (i *IP) TableName() string {
 // SaveIp 保存数据到数据库
 func SaveIp(ip *IP) {
 	db := GetDB().Begin()
+	ip.ProxyType = strings.ToLower(ip.ProxyType)
 	ipModel := GetIpByProxyHost(ip.ProxyHost)
 	if ipModel.ProxyHost == "" {
 		err := db.Model(new(IP)).Create(ip)
@@ -93,6 +95,8 @@ func UpdateIp(ip *IP) {
 	ipModel := ip
 	ipMap := make(map[string]interface{}, 0)
 	ipMap["proxy_speed"] = ip.ProxySpeed
+	ipMap["proxy_type"] = ip.ProxyType
+
 	ipMap["update_time"] = util.FormatDateTime()
 	if ipModel.ProxyId != 0 {
 		err := db.Model(new(IP)).Where("proxy_id = ?", ipModel.ProxyId).Updates(ipMap)

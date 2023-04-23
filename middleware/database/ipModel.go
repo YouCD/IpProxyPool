@@ -95,7 +95,7 @@ func UpdateIp(ip *IP) {
 	ipModel := ip
 	ipMap := make(map[string]interface{}, 0)
 	ipMap["proxy_speed"] = ip.ProxySpeed
-	ipMap["proxy_type"] = ip.ProxyType
+	ipMap["proxy_type"] = strings.ToLower(ip.ProxyType)
 
 	ipMap["update_time"] = util.FormatDateTime()
 	if ipModel.ProxyId != 0 {
@@ -123,6 +123,7 @@ func DeleteIp(ip *IP) {
 type ProxyTypeCount struct {
 	Http  int64 `json:"http"`
 	Https int64 `json:"https"`
+	Tcp   int64 `json:"tcp"`
 	Other int64 `json:"other"`
 }
 
@@ -135,6 +136,10 @@ func Count() (c *ProxyTypeCount) {
 	}
 
 	err = GetDB().Model(new(IP)).Where("proxy_type = ?", "https").Count(&c.Https).Error
+	if err != nil {
+		logrus.Errorf("error msg: %v\n", err.Error())
+	}
+	err = GetDB().Model(new(IP)).Where("proxy_type = ?", "tcp").Count(&c.Tcp).Error
 	if err != nil {
 		logrus.Errorf("error msg: %v\n", err.Error())
 	}

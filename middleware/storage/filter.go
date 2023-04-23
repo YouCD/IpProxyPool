@@ -29,6 +29,7 @@ func CheckProxy(ip *database.IP) {
 	if ok {
 		database.SaveIp(checkIp)
 	}
+	logger.Println("check proxy done           ", checkIp)
 }
 
 //
@@ -41,8 +42,11 @@ func CheckProxy(ip *database.IP) {
 func CheckIp(ip *database.IP) (*database.IP, bool) {
 	// 检测代理iP访问地址
 	var testUrl string
-
-	if strings.ToLower(ip.ProxyType) == "http" {
+	if ip == nil {
+		logger.Error("ip is nil")
+		return nil, false
+	}
+	if ip.ProxyType == "http" {
 		testUrl = httpHttpBin
 	} else {
 		testUrl = httpsHttpBin
@@ -55,7 +59,6 @@ func CheckIp(ip *database.IP) (*database.IP, bool) {
 			return newIP, false
 		}
 		testIp := fmt.Sprintf("%s://%s:%d", newIP.ProxyType, newIP.ProxyHost, newIP.ProxyPort)
-
 		// 设置网络传输
 		netTransport := &http.Transport{
 			DialContext:           dialer.DialContext,
@@ -92,7 +95,7 @@ func CheckIp(ip *database.IP) (*database.IP, bool) {
 		}
 
 		// 切换协议类型
-		if strings.ToLower(ip.ProxyType) == "https" {
+		if ip.ProxyType == "https" {
 			ip.ProxyType = "tcp"
 		} else {
 			break
@@ -106,27 +109,29 @@ func CreateDialerAndProxy(ip *database.IP) (*net.Dialer, func(*http.Request) (*u
 	if ip == nil {
 		return nil, nil, ip, errors.New("proxy is empty")
 	}
+
+	ip.ProxyType = strings.ToLower(ip.ProxyType)
+
 	dialer := &net.Dialer{
 		// 限制创建一个TCP连接使用的时间（如果需要一个新的链接）
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
 	switch {
-	case strings.Contains(strings.ToLower(ip.ProxyType), "http"), strings.Contains(strings.ToLower(ip.ProxyType), "https"):
+	case strings.Contains(ip.ProxyType, "http"), strings.Contains(ip.ProxyType, "https"):
 		// 解析代理地址
 		proxy, err := url.Parse(strings.ToLower(fmt.Sprintf("%s://%s:%d", ip.ProxyType, ip.ProxyHost, ip.ProxyPort)))
 		if err != nil {
 			return nil, nil, ip, err
 		}
 		return dialer, http.ProxyURL(proxy), ip, nil
-	case strings.Contains(strings.ToLower(ip.ProxyType), "tcp"):
-		// 解析代理地址
-
-		conn, err := dialer.Dial("tcp", strings.ToLower(ip.ProxyHost+":"+strconv.Itoa(ip.ProxyPort)))
+	case strings.Contains(ip.ProxyType, "tcp"):
+		conn, err := dialer.Dial("tcp", ip.ProxyHost+":"+strconv.Itoa(ip.ProxyPort))
 		if err != nil {
 			logger.Error(err)
 			return nil, nil, ip, err
 		}
+
 		defer conn.Close()
 		//  变更代理类型为 tcp
 		ip.ProxyType = "tcp"
@@ -185,6 +190,27 @@ func RandomProxy() (ip database.IP) {
 
 // RandomByProxyType .
 func RandomByProxyType(proxyType string) (ip database.IP) {
+	//  如果是 https 优先返回 tcp的代理类型
+	switch proxyType {
+	case "https":
+		ips, err := database.GetIpByProxyType("tcp")
+		if err != nil {
+			logger.Warn(err.Error())
+			return database.IP{}
+		}
+		ipCount := len(ips)
+		if ipCount == 0 {
+			//  如果没有 tcp 类型的代理，就返回 https 类型的代理
+			return randomByProxyType(proxyType)
+		}
+		randomNum := randomutil.RandInt(0, ipCount)
+		return ips[randomNum]
+	default:
+		return randomByProxyType(proxyType)
+	}
+
+}
+func randomByProxyType(proxyType string) (ip database.IP) {
 	ips, err := database.GetIpByProxyType(proxyType)
 	if err != nil {
 		logger.Warn(err.Error())

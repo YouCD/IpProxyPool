@@ -4,6 +4,7 @@ import (
 	"IpProxyPool/fetcher/ip3366"
 	"IpProxyPool/fetcher/ip66"
 	"IpProxyPool/fetcher/ip89"
+	"IpProxyPool/fetcher/kuaidaili"
 	"IpProxyPool/fetcher/zdaye"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
@@ -51,8 +52,8 @@ func run(ipChan chan<- *database.IP) {
 		ip3366.Ip33661,
 		ip3366.Ip33662,
 		zdaye.Zdaye,
-		//kuaidaili.KuaiDaiLiInha,
-		//kuaidaili.KuaiDaiLiIntr,
+		kuaidaili.KuaiDaiLiInha,
+		kuaidaili.KuaiDaiLiIntr,
 		//proxylistplus.ProxyListPlus,
 	}
 	for _, siteFunc := range siteFuncList {

@@ -23,7 +23,7 @@ func Fetch(url string) *goquery.Document {
 	}
 	client := &http.Client{
 		Jar:     cookieJar,
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -42,6 +42,7 @@ func Fetch(url string) *goquery.Document {
 	if resp != nil {
 		defer resp.Body.Close()
 	}
+
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Print("起死回生")
@@ -49,7 +50,7 @@ func Fetch(url string) *goquery.Document {
 		}
 	}()
 	if err != nil {
-		//logrus.Errorf("http get error: %v", err)
+		logrus.Errorf("http get error: %v", err)
 		//return nil
 		panic(err)
 	}

@@ -9,6 +9,7 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // 国内高匿代理
@@ -31,8 +32,16 @@ func KuaiDaiLi(proxyType string) []*database.IP {
 	pageNum := fetchIndex.Find("#listnav > ul > li:nth-child(9) > a").Text()
 	num, _ := strconv.Atoi(pageNum)
 	for i := 1; i <= num; i++ {
+		//  休眠3秒，防止被封
+		time.Sleep(3 * time.Second)
 		url := fmt.Sprintf("%s/%s/%d", indexUrl, proxyType, i)
+
 		fetch := fetcher.Fetch(url)
+		if fetch == nil {
+			logger.Warn("[kuaidaili] fetch error")
+			continue
+		}
+
 		fetch.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
 			selection.Find("tr").Each(func(i int, selection *goquery.Selection) {
 				proxyIp := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())

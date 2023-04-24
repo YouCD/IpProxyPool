@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"IpProxyPool/util/headerutil"
+	"crypto/tls"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
@@ -23,6 +24,9 @@ func Fetch(url string) *goquery.Document {
 	client := &http.Client{
 		Jar:     cookieJar,
 		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
 	}
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	req.Header.Set("Proxy-Switch-Ip", "yes")

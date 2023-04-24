@@ -45,9 +45,9 @@ func TestCheckIp(t *testing.T) {
 	}
 	ip3 := &database.IP{
 		ProxyId:       4842,
-		ProxyHost:     "47.113.191.150",
-		ProxyPort:     8080,
-		ProxyType:     "HTTP",
+		ProxyHost:     "222.190.173.176",
+		ProxyPort:     8089,
+		ProxyType:     "https",
 		ProxyLocation: "SSL高匿_上海市腾讯云",
 		ProxySpeed:    1046,
 		ProxySource:   "http://www.ip3366.net",
@@ -58,6 +58,6 @@ func TestCheckIp(t *testing.T) {
 	fmt.Println(ip2)
 	fmt.Println(ip1)
 	fmt.Println(ip3)
-	fmt.Println(CheckIp(ip1))
+	fmt.Println(CheckIp(ip3))
 
 }

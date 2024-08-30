@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/net/publicsuffix"
 	"io"
@@ -15,7 +15,7 @@ import (
 )
 
 func Fetch(url string) *goquery.Document {
-	logrus.Infof("Fetch url: %s", url)
+	log.Infof("Fetch url: %s", url)
 	// &cookiejar.Options{PublicSuffixList: publicsuffix.List}，这是为了可以根据域名安全地设置cookies
 	cookieJar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
@@ -23,7 +23,7 @@ func Fetch(url string) *goquery.Document {
 	}
 	client := &http.Client{
 		Jar:     cookieJar,
-		Timeout: 30 * time.Second,
+		Timeout: 50 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -50,13 +50,10 @@ func Fetch(url string) *goquery.Document {
 		}
 	}()
 	if err != nil {
-		logrus.Errorf("http get error: %v", err)
+		log.Errorf("http get error: %v", err)
 		//return nil
 		panic(err)
 	}
-	//if resp.StatusCode != http.StatusOK {
-	//	logrus.Errorf("error http status code: %d", resp.StatusCode)
-	//}
 
 	var newResp io.Reader
 	var charsetErr error
@@ -67,11 +64,11 @@ func Fetch(url string) *goquery.Document {
 	if resp.StatusCode == http.StatusOK {
 		newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
 		if charsetErr != nil {
-			logrus.Errorf("charset convert failed: %v", charsetErr)
+			log.Errorf("charset convert failed: %v", charsetErr)
 		}
 		doc, docErr = goquery.NewDocumentFromReader(newResp)
 		if docErr != nil {
-			logrus.Errorf("goquery http response body reader error: %v", docErr)
+			log.Errorf("goquery http response body reader error: %v", docErr)
 		}
 	}
 	return doc

@@ -6,29 +6,41 @@ import (
 	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// 国内高匿代理
-func KuaiDaiLiInha() []*database.IP {
-	return KuaiDaiLi("inha")
+func KuaiDaiLi() []*database.IP {
+	list := make([]*database.IP, 0)
+	// 国内高匿代理
+	list = append(list, kuaiDaiLi("inha")...)
+	// 国内普通代理
+	list = append(list, kuaiDaiLi("intr")...)
+	return list
 }
 
-// 国内普通代理
-func KuaiDaiLiIntr() []*database.IP {
-	return KuaiDaiLi("intr")
+func proxyTypeStr(typ string) string {
+	switch typ {
+	case "inha":
+		return "国内高匿代理"
+	case "intr":
+		return "国内普通代理"
+	}
+	return "未知"
 }
-
-func KuaiDaiLi(proxyType string) []*database.IP {
-	logger.Info("[kuaidaili] fetch start")
+func kuaiDaiLi(proxyType string) []*database.IP {
+	log.Infow("KuaiDaiLi", "类型", proxyTypeStr(proxyType))
 
 	list := make([]*database.IP, 0)
 
 	indexUrl := "https://www.kuaidaili.com/free"
 	fetchIndex := fetcher.Fetch(indexUrl)
+	if fetchIndex == nil {
+		log.Warnf("KuaiDaiLi: 类型:%s  限流", proxyTypeStr(proxyType))
+		return nil
+	}
 	pageNum := fetchIndex.Find("#listnav > ul > li:nth-child(9) > a").Text()
 	num, _ := strconv.Atoi(pageNum)
 	for i := 1; i <= num; i++ {
@@ -38,7 +50,7 @@ func KuaiDaiLi(proxyType string) []*database.IP {
 
 		fetch := fetcher.Fetch(url)
 		if fetch == nil {
-			logger.Warn("[kuaidaili] fetch error")
+			log.Warnw("KuaiDaiLi", "类型", proxyTypeStr(proxyType))
 			continue
 		}
 
@@ -63,6 +75,6 @@ func KuaiDaiLi(proxyType string) []*database.IP {
 			})
 		})
 	}
-	logger.Info("[kuaidaili] fetch done")
+	log.Info("KuaiDaiLi fetch done")
 	return list
 }

@@ -6,16 +6,16 @@ import (
 	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"strconv"
 	"strings"
 )
 
 func Ip66() []*database.IP {
-	logger.Info("[66ip] fetch start")
+	log.Info("[66ip] fetch start")
 	defer func() {
 		recover()
-		logger.Warnln("[66ip] fetch error")
+		log.Warn("[66ip] fetch error")
 	}()
 	list := make([]*database.IP, 0)
 
@@ -47,6 +47,6 @@ func Ip66() []*database.IP {
 			})
 		})
 	}
-	logger.Info("[66ip] fetch done")
+	log.Info("[66ip] fetch done")
 	return list
 }

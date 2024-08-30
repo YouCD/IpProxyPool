@@ -4,11 +4,11 @@ import (
 	"IpProxyPool/middleware/config"
 	"database/sql"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
+	sdkLog "log"
 	"net/url"
 	"os"
 	"sync"
@@ -32,7 +32,7 @@ func InitDB(setting *config.Database) *gorm.DB {
 
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 		if err != nil {
-			logrus.Error(err)
+			log.Error(err)
 			os.Exit(1)
 		}
 
@@ -43,7 +43,7 @@ func InitDB(setting *config.Database) *gorm.DB {
 		// 创建数据库
 		err = db.Exec(sql).Error
 		if err != nil {
-			logrus.Error(err)
+			log.Error(err)
 			os.Exit(1)
 		}
 		dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&allowNativePasswords=true&parseTime=True&loc=Local",
@@ -59,7 +59,7 @@ func InitDB(setting *config.Database) *gorm.DB {
 			setting.DbName,
 		)
 		newLogger := logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+			sdkLog.New(os.Stdout, "\r\n", sdkLog.LstdFlags), // io writer
 			logger.Config{
 				SlowThreshold: time.Second,   // 慢 SQL 阈值
 				LogLevel:      logger.Silent, // Log level
@@ -78,13 +78,13 @@ func InitDB(setting *config.Database) *gorm.DB {
 			AllowGlobalUpdate:      false,
 		})
 		if err != nil {
-			logrus.Error(err)
+			log.Error(err)
 			os.Exit(1)
 		}
 
 		sqlDb, dbErr := db.DB()
 		if dbErr != nil {
-			logrus.Errorf("fail to connect database: %v\n", dbErr)
+			log.Errorf("fail to connect database: %v\n", dbErr)
 			os.Exit(-1)
 		}
 		// 设置连接池
@@ -97,7 +97,7 @@ func InitDB(setting *config.Database) *gorm.DB {
 
 		err = db.AutoMigrate(&IP{})
 		if err != nil {
-			logrus.Error(err)
+			log.Error(err)
 			os.Exit(1)
 		}
 	})
@@ -111,7 +111,7 @@ func KeepAlivedDb(engine *sql.DB) {
 		<-t
 		err = engine.Ping()
 		if err != nil {
-			logrus.Errorf("database ping error: %v\n", err.Error())
+			log.Errorf("database ping error: %v\n", err.Error())
 		}
 	}
 }

@@ -5,20 +5,19 @@ import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/util"
 	"github.com/PuerkitoBio/goquery"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"strconv"
 )
 
-//
 // Zdaye
-//  @Description: 这个站大爷 只搜索了 https 的代理
 //
+//	@Description: 这个站大爷 只搜索了 https 的代理
 func Zdaye() []*database.IP {
 
-	logger.Info("[Zdaye] fetch start")
+	log.Info("[Zdaye] fetch start")
 	defer func() {
 		recover()
-		logger.Warnln("[Zdaye] fetch error")
+		log.Warn("[Zdaye] fetch error")
 	}()
 	list := make([]*database.IP, 0)
 
@@ -44,6 +43,6 @@ func Zdaye() []*database.IP {
 
 		})
 	})
-	logger.Info("[Zdaye] fetch done")
+	log.Info("[Zdaye] fetch done")
 	return list
 }

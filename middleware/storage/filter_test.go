@@ -3,8 +3,8 @@ package storage
 import (
 	"IpProxyPool/middleware/config"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/middleware/logutil"
 	"fmt"
+	"github.com/youcd/toolkit/log"
 	"testing"
 )
 
@@ -12,7 +12,8 @@ func init() {
 	config.ConfigFile = "/home/ycd/self_data/source_code/IpProxyPool/conf/config.yaml"
 	config.InitConfig()
 	setting := config.ServerSetting
-	logutil.InitLog(&setting.Log)
+	log.Init(true)
+	log.SetLogLevel(setting.Log.Level)
 	database.InitDB(&setting.Database)
 }
 func TestCheckProxyDB(t *testing.T) {

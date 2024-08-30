@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"net/http"
 	"time"
 )
@@ -22,7 +22,7 @@ func Run(setting *config.System) {
 	mux.HandleFunc("/http", ProxyHttpHandler)
 	mux.HandleFunc("/https", ProxyHttpsHandler)
 	mux.HandleFunc("/count", CountHandler)
-
+	mux.HandleFunc("/del", ProxyDelHandler)
 	server := &http.Server{
 		Addr:           setting.HttpAddr + ":" + setting.HttpPort,
 		Handler:        mux,
@@ -32,13 +32,13 @@ func Run(setting *config.System) {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	fmt.Println("Server run at:")
-	fmt.Printf("- Local:   http://localhost:%s \r\n", setting.HttpPort)
-	fmt.Printf("- Network: http://%s:%s \r\n", iputil.GetLocalHost(), setting.HttpPort)
+	log.Infof("Server run at:")
+	log.Infof("- Local:   http://localhost:%s ", setting.HttpPort)
+	log.Infof("- Network: http://%s:%s ", iputil.GetLocalHost(), setting.HttpPort)
 
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
-		logger.Fatal("listen: ", err)
+		log.Panic("listen: ", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -46,11 +46,19 @@ func Run(setting *config.System) {
 	server.SetKeepAlivesEnabled(false)
 	errs := server.Shutdown(ctx)
 	if errs != nil {
-		logger.Info("Server Shutdown:", errs)
+		log.Info("Server Shutdown:", errs)
 		fmt.Println("Server Shutdown:", errs)
 	}
 
-	logger.Println("Server exiting")
+	log.Info("Server exiting")
+}
+
+func ProxyDelHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == "GET" {
+		value := request.URL.Query().Get("ip")
+		database.DeleteByIp(value)
+		writer.Write([]byte("ok"))
+	}
 }
 
 func CountHandler(writer http.ResponseWriter, request *http.Request) {
@@ -104,6 +112,7 @@ func ProxyHttpHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
+		log.Info("get http proxy: ", string(b))
 		w.Write(b)
 	}
 }
@@ -116,6 +125,7 @@ func ProxyHttpsHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
+		log.Info("get https proxy: ", string(b))
 		w.Write(b)
 	}
 }

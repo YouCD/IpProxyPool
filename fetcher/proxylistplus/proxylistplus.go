@@ -6,13 +6,14 @@ import (
 	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
+
 	"strconv"
 	"strings"
 )
 
 func ProxyListPlus() []*database.IP {
-	logger.Info("[proxylistplus] fetch start")
+	log.Info("[proxylistplus] fetch start")
 
 	list := make([]*database.IP, 0)
 
@@ -39,6 +40,6 @@ func ProxyListPlus() []*database.IP {
 			})
 		})
 	}
-	logger.Info("[proxylistplus] fetch done")
+	log.Info("[proxylistplus] fetch done")
 	return list
 }

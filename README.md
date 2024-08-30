@@ -37,11 +37,13 @@
 代理获取接口，目前抓取这几个网站的 **免费代理** ，当然也支持自己扩展代理接口；
 
 - [89免费代理](https://www.89ip.cn)
-- [66免费代理网](http://www.66ip.cn)
+- [~~66免费代理网~~](http://www.66ip.cn)
 - [云代理](http://www.ip3366.net)
 - [快代理](http://www.kuaidaili.com)
-- [Proxylist+](https://list.proxylistplus.com)
-
+- [~~Proxylist+~~](https://list.proxylistplus.com)
+- [TheSpeedX](https://github.com/TheSpeedX/PROXY-List)
+- [openproxylist](https://openproxylist.com/)
+- [Geonode](https://geonode.com/)
 ## 安装及使用
 
 ### 源码安装

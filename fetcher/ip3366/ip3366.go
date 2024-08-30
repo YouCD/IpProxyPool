@@ -6,26 +6,25 @@ import (
 	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"strconv"
 	"strings"
 )
 
-// 国内高匿代理
-func Ip33661() []*database.IP {
-	return Ip3366(1)
+func Ip3366() []*database.IP {
+	list := make([]*database.IP, 0)
+	// 国内高匿代理
+	list = append(list, ip3366(1)...)
+	// 国内普通代理
+	list = append(list, ip3366(2)...)
+	return list
 }
 
-// 国内普通代理
-func Ip33662() []*database.IP {
-	return Ip3366(2)
-}
-
-func Ip3366(proxyType int) []*database.IP {
-	logger.Info("[ip3366] fetch start")
+func ip3366(proxyType int) []*database.IP {
+	log.Info("[ip3366] fetch start")
 	defer func() {
 		recover()
-		logger.Warnln("[ip3366] fetch error")
+		log.Warn("[ip3366] fetch error")
 	}()
 	list := make([]*database.IP, 0)
 
@@ -57,6 +56,6 @@ func Ip3366(proxyType int) []*database.IP {
 			})
 		})
 	}
-	logger.Info("[ip3366] fetch done")
+	log.Info("[ip3366] fetch done")
 	return list
 }

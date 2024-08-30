@@ -20,6 +20,7 @@ build-linux:
 # linux
 build:
 	@CGO_ENABLED=0 $(GOBUILD) $(StripGoPath) -ldflags $(FLAG) -o $(BINARY_DIR)/$(BINARY_NAME)
+	@upx $(BINARY_DIR)/$(BINARY_NAME)
 
 #mac
 build-darwin:

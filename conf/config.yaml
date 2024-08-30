@@ -9,6 +9,7 @@ system:
 # mysql
 database:
   host: 127.0.0.1
+#  host: 192.168.1.188
   port: 3306
   dbName: IpProxyPool
   username: root
@@ -20,7 +21,7 @@ log:
   filePath: logs
   fileName: run.log
   # Either "info", "warn", "error", "debug", default is "info"
-  level: debug
+  level: info
   # Can be "console" and "file", default is "console"
   # Use comma to separate multiple modes, e.g. "console, file"
-  mode: file
+  mode: console

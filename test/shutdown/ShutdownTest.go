@@ -4,7 +4,7 @@ import (
 	"IpProxyPool/util/iputil"
 	"context"
 	"fmt"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,7 +33,7 @@ func main() {
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
-			logger.Fatal("listen: ", err)
+			log.Panic("listen: ", err)
 		}
 	}()
 
@@ -43,11 +43,11 @@ func main() {
 
 	graceFullShutdown(server, wg)
 
-	logger.Println("waiting for the remaining connections to finish...")
+	log.Info("waiting for the remaining connections to finish...")
 	// 等待已经关闭的信号
 	wg.Wait()
 
-	logger.Println("Server exiting")
+	log.Info("Server exiting")
 }
 
 func graceFullShutdown(server *http.Server, wg *sync.WaitGroup) {
@@ -63,7 +63,7 @@ func graceFullShutdown(server *http.Server, wg *sync.WaitGroup) {
 		server.SetKeepAlivesEnabled(false)
 		errs := server.Shutdown(ctx)
 		if errs != nil {
-			logger.Info("Server Shutdown:", errs)
+			log.Info("Server Shutdown:", errs)
 			fmt.Println("Server Shutdown:", errs)
 		}
 		wg.Done()

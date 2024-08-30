@@ -5,7 +5,6 @@ import (
 	"IpProxyPool/common"
 	"IpProxyPool/middleware/config"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/middleware/logutil"
 	"IpProxyPool/run"
 	"fmt"
 	"github.com/spf13/cobra"
@@ -25,8 +24,6 @@ var rootCmd = &cobra.Command{
 		}
 		setting := config.ServerSetting
 
-		// 将日志写入文件或打印到控制台
-		logutil.InitLog(&setting.Log)
 		// 初始化数据库连接
 		database.InitDB(&setting.Database)
 

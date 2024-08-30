@@ -1,14 +1,16 @@
 package run
 
 import (
+	"IpProxyPool/fetcher/geonode"
 	"IpProxyPool/fetcher/ip3366"
-	"IpProxyPool/fetcher/ip66"
 	"IpProxyPool/fetcher/ip89"
 	"IpProxyPool/fetcher/kuaidaili"
+	"IpProxyPool/fetcher/proxylistplus"
+	"IpProxyPool/fetcher/txt"
 	"IpProxyPool/fetcher/zdaye"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
-	logger "github.com/sirupsen/logrus"
+	"github.com/youcd/toolkit/log"
 	"sync"
 	"time"
 )
@@ -36,7 +38,7 @@ func Task() {
 	// Start getters to scraper IP and put it in channel
 	for {
 		nums := database.CountIp()
-		logger.Printf("Chan: %v, IP: %d\n", len(ipChan), nums)
+		log.Infof("Chan: %v, IP: %d", len(ipChan), nums)
 		if len(ipChan) < 100 {
 			go run(ipChan)
 		}
@@ -46,20 +48,25 @@ func Task() {
 
 func run(ipChan chan<- *database.IP) {
 	var wg sync.WaitGroup
-	siteFuncList := []func() []*database.IP{
-		ip66.Ip66,
-		ip89.Ip89,
-		ip3366.Ip33661,
-		ip3366.Ip33662,
-		zdaye.Zdaye,
-		kuaidaili.KuaiDaiLiInha,
-		kuaidaili.KuaiDaiLiIntr,
-		//proxylistplus.ProxyListPlus,
+
+	type fetcher func() []*database.IP
+	siteFuncList := map[string]fetcher{
+		//"66ip":          ip66.Ip66,
+		"89ip":          ip89.Ip89,
+		"ip3366":        ip3366.Ip3366,
+		"站大爷":           zdaye.Zdaye,
+		"快代理":           kuaidaili.KuaiDaiLi,
+		"proxylistplus": proxylistplus.ProxyListPlus,
+		"TheSpeedX":     txt.TheSpeedX,
+		"OpenProxyList": txt.OpenProxyList,
+		"Geonode":       geonode.Geonode,
 	}
-	for _, siteFunc := range siteFuncList {
+
+	for name, siteFunc := range siteFuncList {
 		wg.Add(1)
-		go func(siteFunc func() []*database.IP) {
+		go func(siteFunc fetcher) {
 			temp := siteFunc()
+			log.Infof("Get %d IP from %s", len(temp), name)
 			for _, v := range temp {
 				ipChan <- v
 			}
@@ -67,5 +74,5 @@ func run(ipChan chan<- *database.IP) {
 		}(siteFunc)
 	}
 	wg.Wait()
-	logger.Println("All getters finished.")
+	log.Info("All getters finished.")
 }

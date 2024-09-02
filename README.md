@@ -90,6 +90,20 @@ git clone https://github.com/wuchunfu/IpProxyPool.git
 # 进入项目目录
 cd IpProxyPool
 
+# 修改MySQL配置 
+vi conf/config.yaml
+# mysql
+database:
+  host: proxypool_mysql
+  port: 3306
+  dbName: IpProxyPool
+  username: root
+  password: 'P@ssw0rd'
+
+
+# proxypool镜像构建
+docker build -t proxypool:latest .
+
 # 执行以下命令启动
 docker-compose -f docker-compose.yaml up -d
 
@@ -113,18 +127,4 @@ curl http://127.0.0.1:3000/http
 # 随机输出HTTPS代理
 curl http://127.0.0.1:3000/https
 ```
-
-## 计划任务
-
-- [ ] [西拉免费代理IP](http://www.xiladaili.com)
-- [ ] [站大爷](https://www.zdaye.com)
-
-## 诚挚的感谢
-
-- 首先感谢您的使用，如果觉得程序还不错也能帮助您解决实际问题，不妨添个赞以鼓励本人继续努力，谢谢！
-- 如果您对程序有任何建议和意见，也欢迎提交issue。
-- 当然，如果您愿意贡献代码和我一起改进本程序，那再好不过了。
-
-## 注意
-本代码库仅用于学习研究使用，请勿用于非法用途，本人不承担由此带来的任何法律问题。
 

@@ -29,7 +29,7 @@ func SaveIp(ip *IP) {
 	ip.ProxyType = strings.ToLower(ip.ProxyType)
 	ipModel := GetIpByProxyHost(ip.ProxyHost)
 	if ipModel.ProxyHost == "" {
-		err := db.Model(new(IP)).Create(ip).Error
+		err := db.Model(&IP{}).Create(ip).Error
 		if err != nil {
 			log.Errorf("save ip: %s, error msg: %v", ip.ProxyHost, err)
 			db.Rollback()
@@ -42,9 +42,8 @@ func SaveIp(ip *IP) {
 
 // GetIpByProxyHost 根据 proxyHost 获取一条数据
 func GetIpByProxyHost(host string) *IP {
-	db := GetDB()
 	ipModel := new(IP)
-	err := db.Model(new(IP)).Where("proxy_host = ?", host).Find(ipModel)
+	err := db.Model(&IP{}).Where("proxy_host = ?", host).Find(ipModel)
 	if err.Error != nil {
 		log.Errorf("get ip: %s, error msg: %v", ipModel.ProxyHost, err.Error)
 		return nil
@@ -54,9 +53,8 @@ func GetIpByProxyHost(host string) *IP {
 
 // CountIp 查询共有多少条数据
 func CountIp() int64 {
-	db := GetDB()
 	var count int64
-	err := db.Model(new(IP)).Count(&count)
+	err := db.Model(&IP{}).Count(&count)
 	if err.Error != nil {
 		log.Errorf("ip count: %d, error msg: %v", count, err.Error)
 		return -1
@@ -78,9 +76,8 @@ func GetAllIp() []*IP {
 
 // GetIpByProxyType 根据 proxyType 获取一条数据
 func GetIpByProxyType(proxyType string) ([]IP, error) {
-	db := GetDB()
 	list := make([]IP, 0)
-	err := db.Model(new(IP)).Where("proxy_type = ?", proxyType).Find(&list)
+	err := db.Model(&IP{}).Where("proxy_type = ?", proxyType).Find(&list)
 	if err.Error != nil {
 		log.Errorf("error msg: %v\n", err.Error)
 		return list, err.Error
@@ -98,7 +95,7 @@ func UpdateIp(ip *IP) {
 
 	ipMap["update_time"] = util.FormatDateTime()
 	if ipModel.ProxyId != 0 {
-		err := db.Model(new(IP)).Where("proxy_id = ?", ipModel.ProxyId).Updates(ipMap)
+		err := db.Model(&IP{}).Where("proxy_id = ?", ipModel.ProxyId).Updates(ipMap)
 		if err.Error != nil {
 			log.Errorf("update ip: %s, error msg: %v", ipModel.ProxyHost, err.Error)
 			db.Rollback()
@@ -111,7 +108,7 @@ func UpdateIp(ip *IP) {
 func DeleteIp(ip *IP) {
 	db := GetDB().Begin()
 	ipModel := ip
-	err := db.Model(new(IP)).Where("proxy_id = ?", ipModel.ProxyId).Delete(ipModel)
+	err := db.Model(&IP{}).Where("proxy_id = ?", ipModel.ProxyId).Delete(ipModel)
 	if err.Error != nil {
 		log.Errorf("delete ip: %s, error msg: %v", ipModel.ProxyHost, err.Error)
 		db.Rollback()
@@ -129,33 +126,15 @@ func DeleteByIp(ip string) {
 	db.Commit()
 }
 
-type ProxyTypeCount struct {
-	Http  int64 `json:"http"`
-	Https int64 `json:"https"`
-	Tcp   int64 `json:"tcp"`
-	Other int64 `json:"other"`
-}
-
-func Count() (c *ProxyTypeCount) {
-	c = &ProxyTypeCount{}
-
-	err := GetDB().Model(new(IP)).Where("proxy_type = ?", "http").Count(&c.Http).Error
-	if err != nil {
-		log.Errorf("error msg: %v\n", err.Error())
+func Count() map[string]int64 {
+	countMap := make(map[string]int64)
+	proxyTypes := []string{"http", "https", "tcp", "socks5", "socks4", "tcp"}
+	for _, proxyType := range proxyTypes {
+		var count int64
+		if err := GetDB().Model(&IP{}).Where("proxy_type = ?", proxyType).Count(&count).Error; err != nil {
+			log.Errorf("count proxy_type: %s, error %s", proxyType, err)
+		}
+		countMap[proxyType] = count
 	}
-
-	err = GetDB().Model(new(IP)).Where("proxy_type = ?", "https").Count(&c.Https).Error
-	if err != nil {
-		log.Errorf("error msg: %v\n", err.Error())
-	}
-	err = GetDB().Model(new(IP)).Where("proxy_type = ?", "tcp").Count(&c.Tcp).Error
-	if err != nil {
-		log.Errorf("error msg: %v\n", err.Error())
-	}
-	err = GetDB().Model(new(IP)).Where("proxy_type != ? and proxy_type != ? ", "http", "https").Count(&c.Other).Error
-	if err != nil {
-		log.Errorf("error msg: %v\n", err.Error())
-	}
-
-	return
+	return countMap
 }

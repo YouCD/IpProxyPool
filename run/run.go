@@ -2,11 +2,11 @@ package run
 
 import (
 	"IpProxyPool/fetcher/geonode"
+	"IpProxyPool/fetcher/github"
 	"IpProxyPool/fetcher/ip3366"
 	"IpProxyPool/fetcher/ip89"
 	"IpProxyPool/fetcher/kuaidaili"
 	"IpProxyPool/fetcher/proxylistplus"
-	"IpProxyPool/fetcher/txt"
 	"IpProxyPool/fetcher/zdaye"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
@@ -21,8 +21,9 @@ func Task() {
 	// 循环检测数据库中的IP
 	go func() {
 		for {
+			log.Info("Checking IPs in DB...")
 			storage.CheckProxyDB()
-			time.Sleep(30 * time.Minute)
+			time.Sleep(10 * time.Minute)
 		}
 	}()
 
@@ -52,14 +53,17 @@ func run(ipChan chan<- *database.IP) {
 	type fetcher func() []*database.IP
 	siteFuncList := map[string]fetcher{
 		//"66ip":          ip66.Ip66,
-		"89ip":          ip89.Ip89,
-		"ip3366":        ip3366.Ip3366,
-		"站大爷":           zdaye.Zdaye,
-		"快代理":           kuaidaili.KuaiDaiLi,
-		"proxylistplus": proxylistplus.ProxyListPlus,
-		"TheSpeedX":     txt.TheSpeedX,
-		"OpenProxyList": txt.OpenProxyList,
-		"Geonode":       geonode.Geonode,
+		"89ip":           ip89.Ip89,
+		"ip3366":         ip3366.Ip3366,
+		"站大爷":            zdaye.Zdaye,
+		"快代理":            kuaidaili.KuaiDaiLi,
+		"proxylistplus":  proxylistplus.ProxyListPlus,
+		"TheSpeedX":      github.TheSpeedX,
+		"OpenProxyList":  github.OpenProxyList,
+		"Geonode":        geonode.Geonode,
+		"HideIPMe":       github.HideIPMe,
+		"FreeProxyList":  github.FreeProxyList,
+		"FreshProxyList": github.FreshProxyList,
 	}
 
 	for name, siteFunc := range siteFuncList {

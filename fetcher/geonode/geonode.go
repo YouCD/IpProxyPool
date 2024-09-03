@@ -38,17 +38,18 @@ type resp struct {
 }
 
 func Geonode() []*database.IP {
-	fetchIndex := fetcher.Fetch("https://proxylist.geonode.com/api/proxy-list?protocols=socks5&limit=500&page=1&sort_by=lastChecked&sort_type=desc")
-	if fetchIndex == nil {
-		log.Error("fetch geonode error")
-		return nil
+	log.Info("[geonode] fetch start")
+	list := make([]*database.IP, 0)
+	document, err := fetcher.Fetch("https://proxylist.geonode.com/api/proxy-list?protocols=socks5&limit=500&page=1&sort_by=lastChecked&sort_type=desc")
+	if err != nil {
+		log.Errorf("document geonode error:%s", err)
+		return list
 	}
 	var respData resp
-	if err := json.Unmarshal([]byte(fetchIndex.Text()), &respData); err != nil {
+	if err := json.Unmarshal([]byte(document.Text()), &respData); err != nil {
 		log.Error(err)
-		return nil
+		return list
 	}
-	list := make([]*database.IP, 0)
 	for _, datum := range respData.Data {
 		ip := &database.IP{
 			ProxyHost:     datum.Ip,
@@ -61,5 +62,6 @@ func Geonode() []*database.IP {
 		}
 		list = append(list, ip)
 	}
+	log.Info("[geonode] fetch done")
 	return list
 }

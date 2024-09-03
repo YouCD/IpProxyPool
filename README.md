@@ -41,9 +41,14 @@
 - [云代理](http://www.ip3366.net)
 - [快代理](http://www.kuaidaili.com)
 - [~~Proxylist+~~](https://list.proxylistplus.com)
-- [TheSpeedX](https://github.com/TheSpeedX/PROXY-List)
 - [openproxylist](https://openproxylist.com/)
 - [Geonode](https://geonode.com/)
+- [TheSpeedX](https://github.com/TheSpeedX/PROXY-List) ![last-commit](https://img.shields.io/github/last-commit/TheSpeedX/PROXY-List)
+- [hideip.me](https://github.com/zloi-user/hideip.me) ![last-commit](https://img.shields.io/github/last-commit/zloi-user/hideip.me)
+- [Free Proxy List](https://github.com/proxifly/free-proxy-list) ![last-commit](https://img.shields.io/github/last-commit/proxifly/free-proxy-list)
+- [fresh-proxy-list](https://github.com/vakhov/fresh-proxy-list) ![last-commit](https://img.shields.io/github/last-commit/vakhov/fresh-proxy-list)
+  
+
 ## 安装及使用
 
 ### 源码安装

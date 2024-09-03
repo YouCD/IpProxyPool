@@ -20,15 +20,14 @@ func Ip66() []*database.IP {
 	list := make([]*database.IP, 0)
 
 	indexUrl := "http://www.66ip.cn"
-	//fetchIndex := fetcher.Fetch(indexUrl)
-	//pageNum := fetchIndex.Find("#PageList > a:nth-child(12)").Text()
-	//num, _ := strconv.Atoi(pageNum)
-	//fmt.Println("=====")
-	//fmt.Println(num)
 	for i := 1; i <= 100; i++ {
 		url := fmt.Sprintf("%s/%d.html", indexUrl, i)
-		fetch := fetcher.Fetch(url)
-		fetch.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
+		document := fetcher.Fetch(url)
+		if document == nil {
+			log.Errorf("%s document error", url)
+			continue
+		}
+		document.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
 			selection.Find("tr").NextAll().Each(func(i int, selection *goquery.Selection) {
 				proxyIp := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())
 				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())

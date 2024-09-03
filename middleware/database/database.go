@@ -18,7 +18,6 @@ import (
 var dbPingInterval = 90 * time.Second
 var (
 	db   *gorm.DB
-	err  error
 	once sync.Once
 )
 
@@ -27,6 +26,7 @@ func GetDB() *gorm.DB {
 }
 
 func InitDB(setting *config.Database) *gorm.DB {
+	var err error
 	once.Do(func() {
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=True&loc=Local", url.QueryEscape(setting.Username), setting.Password, setting.Host, setting.Port) // 连接数据库
 

@@ -20,13 +20,21 @@ func Ip89() []*database.IP {
 	list := make([]*database.IP, 0)
 
 	indexUrl := "https://www.89ip.cn/"
-	fetchIndex := fetcher.Fetch(indexUrl)
-	pageNum := fetchIndex.Find("#layui-laypage-1 > a:nth-child(7)").Text()
+	document, err := fetcher.Fetch(indexUrl)
+	if err != nil {
+		log.Errorf("%s fetch error:%s", indexUrl, err)
+		return list
+	}
+	pageNum := document.Find("#layui-laypage-1 > a:nth-child(7)").Text()
 	num, _ := strconv.Atoi(pageNum)
 	for i := 1; i <= num; i++ {
 		url := fmt.Sprintf("%s/index_%d.html", indexUrl, i)
-		fetch := fetcher.Fetch(url)
-		fetch.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
+		documentA, err := fetcher.Fetch(url)
+		if err != nil {
+			log.Errorf("%s document error:%s", indexUrl, err)
+			continue
+		}
+		documentA.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
 			selection.Find("tr").Each(func(i int, selection *goquery.Selection) {
 				proxyIp := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())
 				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())

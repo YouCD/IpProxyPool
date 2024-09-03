@@ -64,6 +64,12 @@ func checkIP(ip *database.IP) (*database.IP, error) {
 		ip.ProxyType = "socks5"
 		return ip, nil
 	}
+	// 解析为 socks4 代理
+	if isTcpProxy(ip) {
+		ip.ProxyType = "socks4"
+		return ip, nil
+	}
+
 	// 解析为 tcp 代理
 	if isTcpProxy(ip) {
 		ip.ProxyType = "tcp"
@@ -237,7 +243,7 @@ func RandomByProxyType(proxyType string) (ip database.IP) {
 func randomByProxyType(proxyType string) (ip database.IP) {
 	ips, err := database.GetIpByProxyType(proxyType)
 	if err != nil {
-		log.Warn(err.Error())
+		log.Warn(err)
 		return database.IP{}
 	}
 	ipCount := len(ips)

@@ -29,13 +29,21 @@ func ip3366(proxyType int) []*database.IP {
 	list := make([]*database.IP, 0)
 
 	indexUrl := "http://www.ip3366.net/free"
-	fetchIndex := fetcher.Fetch(indexUrl)
-	pageNum := fetchIndex.Find("#listnav > ul > a:nth-child(8)").Text()
+	document, err := fetcher.Fetch(indexUrl)
+	if err != nil {
+		log.Errorf("ip3366 fetch index error:%s", err)
+		return list
+	}
+	pageNum := document.Find("#listnav > ul > a:nth-child(8)").Text()
 	num, _ := strconv.Atoi(pageNum)
 	for i := 1; i <= num; i++ {
 		url := fmt.Sprintf("%s/?stype=%d&page=%d", indexUrl, proxyType, i)
-		fetch := fetcher.Fetch(url)
-		fetch.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
+		documentA, err := fetcher.Fetch(url)
+		if err != nil {
+			log.Errorf("%s documentA error:%s", url, err)
+			continue
+		}
+		documentA.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
 			selection.Find("tr").Each(func(i int, selection *goquery.Selection) {
 				proxyIp := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())
 				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())

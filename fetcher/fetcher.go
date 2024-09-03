@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func Fetch(url string) *goquery.Document {
+func Fetch(url string) (*goquery.Document, error) {
 	log.Infof("Fetch url: %s", url)
 	// &cookiejar.Options{PublicSuffixList: publicsuffix.List}，这是为了可以根据域名安全地设置cookies
 	cookieJar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
@@ -23,7 +23,7 @@ func Fetch(url string) *goquery.Document {
 	}
 	client := &http.Client{
 		Jar:     cookieJar,
-		Timeout: 50 * time.Second,
+		Timeout: 60 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -42,18 +42,15 @@ func Fetch(url string) *goquery.Document {
 	if resp != nil {
 		defer resp.Body.Close()
 	}
-
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Print("起死回生")
-			fmt.Println(err)
-		}
-	}()
 	if err != nil {
 		log.Errorf("http get error: %v", err)
-		//return nil
-		panic(err)
+		return nil, fmt.Errorf("http get error: %w", err)
 	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Errorf("recover get error: %v", err)
+		}
+	}()
 
 	var newResp io.Reader
 	var charsetErr error
@@ -61,15 +58,16 @@ func Fetch(url string) *goquery.Document {
 	var doc *goquery.Document
 	var docErr error
 
-	if resp.StatusCode == http.StatusOK {
-		newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
-		if charsetErr != nil {
-			log.Errorf("charset convert failed: %v", charsetErr)
-		}
-		doc, docErr = goquery.NewDocumentFromReader(newResp)
-		if docErr != nil {
-			log.Errorf("goquery http response body reader error: %v", docErr)
-		}
+	newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
+	if charsetErr != nil {
+		log.Errorf("charset convert failed: %v", charsetErr)
+		return nil, charsetErr
 	}
-	return doc
+	doc, docErr = goquery.NewDocumentFromReader(newResp)
+	if docErr != nil {
+		log.Errorf("goquery http response body reader error: %v", docErr)
+		return nil, fmt.Errorf("goquery http response body reader error: %w", docErr)
+	}
+
+	return doc, nil
 }

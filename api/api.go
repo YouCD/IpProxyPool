@@ -55,8 +55,7 @@ func Run(setting *config.System) {
 
 func ProxyDelHandler(writer http.ResponseWriter, request *http.Request) {
 	if request.Method == "GET" {
-		value := request.URL.Query().Get("ip")
-		database.DeleteByIp(value)
+		database.DeleteByIp(request.URL.Query().Get("ip"))
 		writer.Write([]byte("ok"))
 	}
 }
@@ -64,14 +63,9 @@ func ProxyDelHandler(writer http.ResponseWriter, request *http.Request) {
 func CountHandler(writer http.ResponseWriter, request *http.Request) {
 	if request.Method == "GET" {
 		writer.Header().Set("content-type", "application/json")
-		count := database.Count()
-		b, err := json.Marshal(count)
-		if err != nil {
-			return
-		}
+		b, _ := json.Marshal(database.Count())
 		writer.Write(b)
 	}
-
 }
 
 // IndexHandler .
@@ -84,10 +78,8 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		apiMap["/http"] = "获取随机的一个 http 类型的代理IP"
 		apiMap["/https"] = "获取随机的一个 https 类型的代理IP"
 		apiMap["/count"] = "统计信息"
-		b, err := json.Marshal(apiMap)
-		if err != nil {
-			return
-		}
+		apiMap["/del"] = "删除代理IP"
+		b, _ := json.Marshal(apiMap)
 		w.Write(b)
 	}
 }
@@ -112,7 +104,7 @@ func ProxyHttpHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		log.Info("get http proxy: ", string(b))
+		log.Debug("get http proxy: ", string(b))
 		w.Write(b)
 	}
 }
@@ -125,7 +117,7 @@ func ProxyHttpsHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		log.Info("get https proxy: ", string(b))
+		log.Debug("get https proxy: ", string(b))
 		w.Write(b)
 	}
 }

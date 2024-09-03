@@ -34,27 +34,26 @@ func kuaiDaiLi(proxyType string) []*database.IP {
 	log.Infow("KuaiDaiLi", "类型", proxyTypeStr(proxyType))
 
 	list := make([]*database.IP, 0)
-
 	indexUrl := "https://www.kuaidaili.com/free"
-	fetchIndex := fetcher.Fetch(indexUrl)
-	if fetchIndex == nil {
-		log.Warnf("KuaiDaiLi: 类型:%s  限流", proxyTypeStr(proxyType))
-		return nil
+	document, err := fetcher.Fetch(indexUrl)
+	if err != nil {
+		log.Warnf("KuaiDaiLi: 类型: %s  err:%s", proxyTypeStr(proxyType), err)
+		return list
 	}
-	pageNum := fetchIndex.Find("#listnav > ul > li:nth-child(9) > a").Text()
+	pageNum := document.Find("#listnav > ul > li:nth-child(9) > a").Text()
 	num, _ := strconv.Atoi(pageNum)
 	for i := 1; i <= num; i++ {
 		//  休眠3秒，防止被封
 		time.Sleep(3 * time.Second)
 		url := fmt.Sprintf("%s/%s/%d", indexUrl, proxyType, i)
 
-		fetch := fetcher.Fetch(url)
-		if fetch == nil {
-			log.Warnw("KuaiDaiLi", "类型", proxyTypeStr(proxyType))
+		documentA, err := fetcher.Fetch(url)
+		if err != nil {
+			log.Errorf("KuaiDaiLi: 类型:%s err:%s", proxyTypeStr(proxyType), err)
 			continue
 		}
 
-		fetch.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
+		documentA.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
 			selection.Find("tr").Each(func(i int, selection *goquery.Selection) {
 				proxyIp := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())
 				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())

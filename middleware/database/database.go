@@ -67,10 +67,10 @@ func InitDB(setting *config.Database) *gorm.DB {
 			},
 		)
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-			//NamingStrategy: schema.NamingStrategy{
-			//	TablePrefix:   setting.Prefix, // 表名前缀，`User` 的表名应该是 `t_users`
-			//	SingularTable: true,           // 使用单数表名，启用该选项，此时，`User` 的表名应该是 `t_user`
-			//},
+			// NamingStrategy: schema.NamingStrategy{
+			// 	TablePrefix:   setting.Prefix, // 表名前缀，`User` 的表名应该是 `t_users`
+			// 	SingularTable: true,           // 使用单数表名，启用该选项，此时，`User` 的表名应该是 `t_user`
+			// },
 			PrepareStmt:            true, // 执行任何 SQL 时都创建并缓存预编译语句，可以提高后续的调用速度
 			DisableAutomaticPing:   false,
 			SkipDefaultTransaction: true, // 对于写操作（创建、更新、删除），为了确保数据的完整性，GORM 会将它们封装在事务内运行。但这会降低性能，你可以在初始化时禁用这种方式

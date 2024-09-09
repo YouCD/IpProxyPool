@@ -28,6 +28,7 @@ func Task() {
 	}()
 
 	// Check the IPs in channel
+	//nolint:intrange
 	for i := 0; i < 50; i++ {
 		go func() {
 			for {
@@ -38,7 +39,7 @@ func Task() {
 
 	// Start getters to scraper IP and put it in channel
 	for {
-		nums := database.CountIp()
+		nums := database.CountIP()
 		log.Infof("Chan: %v, IP: %d", len(ipChan), nums)
 		if len(ipChan) < 100 {
 			go run(ipChan)
@@ -52,7 +53,7 @@ func run(ipChan chan<- *database.IP) {
 
 	type fetcher func() []*database.IP
 	siteFuncList := map[string]fetcher{
-		//"66ip":          ip66.Ip66,
+		// "66ip":          ip66.Ip66,
 		"89ip":           ip89.Ip89,
 		"ip3366":         ip3366.Ip3366,
 		"站大爷":            zdaye.Zdaye,

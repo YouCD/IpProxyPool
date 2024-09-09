@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"IpProxyPool/util/headerutil"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
@@ -21,6 +22,7 @@ func Fetch(url string) (*goquery.Document, error) {
 	if err != nil {
 		panic(err)
 	}
+	//nolint:gosec
 	client := &http.Client{
 		Jar:     cookieJar,
 		Timeout: 60 * time.Second,
@@ -28,13 +30,13 @@ func Fetch(url string) (*goquery.Document, error) {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	req.Header.Set("Proxy-Switch-Ip", "yes")
 	req.Header.Set("User-Agent", headerutil.RandomUserAgent())
 	req.Header.Set("Access-Control-Allow-Origin", "*")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.")
-	//req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Accept-language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2")
+	// req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Content-Type", "text/html; charset=UTF-8")
 
@@ -61,7 +63,7 @@ func Fetch(url string) (*goquery.Document, error) {
 	newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
 	if charsetErr != nil {
 		log.Errorf("charset convert failed: %v", charsetErr)
-		return nil, charsetErr
+		return nil, fmt.Errorf("charset convert failed: %w", charsetErr)
 	}
 	doc, docErr = goquery.NewDocumentFromReader(newResp)
 	if docErr != nil {

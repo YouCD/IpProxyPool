@@ -59,6 +59,6 @@ func TestCheckIp(t *testing.T) {
 	fmt.Println(ip2)
 	fmt.Println(ip1)
 	fmt.Println(ip3)
-	fmt.Println(CheckIp(ip3))
+	fmt.Println(CheckIP(ip3))
 
 }

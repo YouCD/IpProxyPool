@@ -15,12 +15,11 @@ import (
 
 // Run for request
 func Run(setting *config.System) {
-
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", IndexHandler)
 	mux.HandleFunc("/all", ProxyAllHandler)
-	mux.HandleFunc("/http", ProxyHttpHandler)
-	mux.HandleFunc("/https", ProxyHttpsHandler)
+	mux.HandleFunc("/http", ProxyHTTPHandler)
+	mux.HandleFunc("/https", ProxyHTTPSHandler)
 	mux.HandleFunc("/count", CountHandler)
 	mux.HandleFunc("/del", ProxyDelHandler)
 	server := &http.Server{
@@ -37,6 +36,7 @@ func Run(setting *config.System) {
 	log.Infof("- Network: http://%s:%s ", iputil.GetLocalHost(), setting.HttpPort)
 
 	err := server.ListenAndServe()
+	//nolint:err113
 	if err != nil && err != http.ErrServerClosed {
 		log.Panic("listen: ", err)
 	}
@@ -54,23 +54,24 @@ func Run(setting *config.System) {
 }
 
 func ProxyDelHandler(writer http.ResponseWriter, request *http.Request) {
-	if request.Method == "GET" {
-		database.DeleteByIp(request.URL.Query().Get("ip"))
-		writer.Write([]byte("ok"))
+	if request.Method == http.MethodGet {
+		database.DeleteByIP(request.URL.Query().Get("ip"))
+		_, _ = writer.Write([]byte("ok"))
 	}
 }
 
 func CountHandler(writer http.ResponseWriter, request *http.Request) {
-	if request.Method == "GET" {
+	if request.Method == http.MethodGet {
 		writer.Header().Set("content-type", "application/json")
+		//nolint:errchkjson
 		b, _ := json.Marshal(database.Count())
-		writer.Write(b)
+		_, _ = writer.Write(b)
 	}
 }
 
 // IndexHandler .
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+	if r.Method == http.MethodGet {
 		w.Header().Set("content-type", "application/json")
 		apiMap := make(map[string]string, 0)
 		apiMap["/"] = "api 指引"
@@ -79,45 +80,46 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		apiMap["/https"] = "获取随机的一个 https 类型的代理IP"
 		apiMap["/count"] = "统计信息"
 		apiMap["/del"] = "删除代理IP"
+		//nolint:errchkjson
 		b, _ := json.Marshal(apiMap)
-		w.Write(b)
+		_, _ = w.Write(b)
 	}
 }
 
 // ProxyAllHandler .
 func ProxyAllHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+	if r.Method == http.MethodGet {
 		w.Header().Set("content-type", "application/json")
 		b, err := json.Marshal(storage.RandomProxy())
 		if err != nil {
 			return
 		}
-		w.Write(b)
+		_, _ = w.Write(b)
 	}
 }
 
-// ProxyHttpHandler .
-func ProxyHttpHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+// ProxyHTTPHandler .
+func ProxyHTTPHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
 		w.Header().Set("content-type", "application/json")
 		b, err := json.Marshal(storage.RandomByProxyType("http"))
 		if err != nil {
 			return
 		}
 		log.Debug("get http proxy: ", string(b))
-		w.Write(b)
+		_, _ = w.Write(b)
 	}
 }
 
-// ProxyHttpsHandler .
-func ProxyHttpsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+// ProxyHTTPSHandler .
+func ProxyHTTPSHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
 		w.Header().Set("content-type", "application/json")
 		b, err := json.Marshal(storage.RandomByProxyType("https"))
 		if err != nil {
 			return
 		}
 		log.Debug("get https proxy: ", string(b))
-		w.Write(b)
+		_, _ = w.Write(b)
 	}
 }

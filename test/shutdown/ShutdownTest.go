@@ -15,7 +15,7 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/shutdown", HttpShutdownHandler)
+	mux.HandleFunc("/shutdown", HTTPShutdownHandler)
 
 	server := &http.Server{
 		Addr:           "0.0.0.0:3001",
@@ -32,6 +32,7 @@ func main() {
 
 	go func() {
 		err := server.ListenAndServe()
+		//nolint:err113
 		if err != nil && err != http.ErrServerClosed {
 			log.Panic("listen: ", err)
 		}
@@ -41,7 +42,7 @@ func main() {
 	// 使用WaitGroup同步Goroutine
 	wg := &sync.WaitGroup{}
 
-	graceFullShutdown(server, wg)
+	go graceFullShutdown(server, wg)
 
 	log.Info("waiting for the remaining connections to finish...")
 	// 等待已经关闭的信号
@@ -54,27 +55,28 @@ func graceFullShutdown(server *http.Server, wg *sync.WaitGroup) {
 	quit := make(chan os.Signal, 1)
 	// 监听 Ctrl+C 信号
 	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	select {
-	case <-quit:
-		wg.Add(1)
-		// 使用context控制 server.Shutdown 的超时时间
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-		server.SetKeepAlivesEnabled(false)
-		errs := server.Shutdown(ctx)
-		if errs != nil {
-			log.Info("Server Shutdown:", errs)
-			fmt.Println("Server Shutdown:", errs)
-		}
-		wg.Done()
+
+	// 直接从 quit 通道接收信号
+	<-quit
+
+	wg.Add(1)
+	// 使用context控制 server.Shutdown 的超时时间
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	server.SetKeepAlivesEnabled(false)
+	errs := server.Shutdown(ctx)
+	if errs != nil {
+		log.Info("Server Shutdown:", errs)
+		fmt.Println("Server Shutdown:", errs)
 	}
+	wg.Done()
 }
 
-// HttpShutdownHandler .
-func HttpShutdownHandler(w http.ResponseWriter, r *http.Request) {
+// HTTPShutdownHandler .
+func HTTPShutdownHandler(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(1 * time.Second)
-	if r.Method == "GET" {
+	if r.Method == http.MethodGet {
 		w.Header().Set("content-type", "application/json")
-		w.Write([]byte("Hello world!"))
+		_, _ = w.Write([]byte("Hello world!"))
 	}
 }

@@ -3,10 +3,10 @@ package github
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/util"
 	"github.com/youcd/toolkit/log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func HideIPMe() []*database.IP {
@@ -42,8 +42,8 @@ func hideIPMeFetch(urlStr string) []*database.IP {
 		ip.ProxyLocation = split[2]
 		ip.ProxySpeed = 100
 		ip.ProxySource = "https://github.com/zloi-user/hideip.me"
-		ip.CreateTime = util.FormatDateTime()
-		ip.UpdateTime = util.FormatDateTime()
+		ip.CreateTime = time.Now()
+		ip.UpdateTime = time.Now()
 		list = append(list, ip)
 	}
 	log.Infof("[hideip.me] fetch done: %s, count: %d", urlStr, len(list))

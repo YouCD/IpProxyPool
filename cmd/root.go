@@ -17,7 +17,7 @@ const name = "IpProxyPool"
 var rootCmd = &cobra.Command{
 	Use:   name,
 	Short: "Main application",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		if config.ConfigFile == "" {
 			fmt.Println("config file is empty")
 			os.Exit(1)
@@ -55,8 +55,8 @@ func Execute() {
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: fmt.Sprintf("Print the version number of %s", name),
-	Run: func(cmd *cobra.Command, args []string) {
+	Short: "Print the version number of " + name,
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Printf("Version:   %s\n", common.Version)
 		fmt.Printf("CommitID:  %s\n", common.CommitID)
 		fmt.Printf("BuildTime: %s\n", common.BuildTime)

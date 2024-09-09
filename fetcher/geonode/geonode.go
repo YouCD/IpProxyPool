@@ -3,12 +3,12 @@ package geonode
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/util"
 	"encoding/json"
 	"github.com/youcd/toolkit/log"
 	"time"
 )
 
+//nolint:tagliatelle,revive
 type item struct {
 	Id                 string      `json:"_id"`
 	Ip                 string      `json:"ip"`
@@ -57,8 +57,8 @@ func Geonode() []*database.IP {
 			ProxyType:     datum.Protocols[0],
 			ProxyLocation: datum.City,
 			ProxySource:   "https://proxylist.geonode.com",
-			CreateTime:    util.FormatDateTime(),
-			UpdateTime:    util.FormatDateTime(),
+			CreateTime:    time.Now(),
+			UpdateTime:    time.Now(),
 		}
 		list = append(list, ip)
 	}

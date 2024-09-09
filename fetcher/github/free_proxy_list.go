@@ -3,10 +3,10 @@ package github
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/util"
 	"github.com/youcd/toolkit/log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func FreeProxyList() []*database.IP {
@@ -17,8 +17,8 @@ func FreeProxyList() []*database.IP {
 	socks4Url := setProxyWeb("https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks4/data.txt")
 	list = append(list, freeProxyListFetch(socks4Url, "socks4://")...)
 
-	httpUrl := setProxyWeb("https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt")
-	list = append(list, freeProxyListFetch(httpUrl, "http://")...)
+	httpURL := setProxyWeb("https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt")
+	list = append(list, freeProxyListFetch(httpURL, "http://")...)
 
 	return list
 }
@@ -44,8 +44,8 @@ func freeProxyListFetch(urlStr, replaceStr string) []*database.IP {
 		ip.ProxyLocation = "free-proxy-list"
 		ip.ProxySpeed = 100
 		ip.ProxySource = "https://github.com/proxifly/free-proxy-list"
-		ip.CreateTime = util.FormatDateTime()
-		ip.UpdateTime = util.FormatDateTime()
+		ip.CreateTime = time.Now()
+		ip.UpdateTime = time.Now()
 		list = append(list, ip)
 	}
 	log.Infof("[FreeProxyList] fetch done: %s, count: %d", urlStr, len(list))

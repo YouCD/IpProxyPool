@@ -16,25 +16,30 @@ import (
 )
 
 const (
-	httpsHttpBin = "https://www.google.com"
-	httpHttpBin  = "http://httpbin.org/get"
+	httpsHTTPBin = "https://www.google.com"
+	httpHTTPBin  = "http://httpbin.org/get"
+)
+
+var (
+	ErrNotAvailable = errors.New("proxy is not available")
+	ErrProxyEmpty   = errors.New("proxy is empty")
 )
 
 // CheckProxy .
 func CheckProxy(ip *database.IP) {
-	if checkIp, ok := CheckIp(ip); ok {
-		database.SaveIp(checkIp)
-		log.Debug("proxy is good           ", checkIp)
+	if IP, ok := CheckIP(ip); ok {
+		database.SaveIP(IP)
+		log.Debug("proxy is good           ", IP)
 	}
 }
 
-// CheckIp
+// CheckIP
 //
 //	@Description: 检测代理IP是否可用
 //	@param ip
 //	@return *database.IP
 //	@return bool
-func CheckIp(ip *database.IP) (*database.IP, bool) {
+func CheckIP(ip *database.IP) (*database.IP, bool) {
 	d, err := checkIP(ip)
 	if err != nil {
 		log.Debug(err)
@@ -46,15 +51,15 @@ func CheckIp(ip *database.IP) (*database.IP, bool) {
 
 func checkIP(ip *database.IP) (*database.IP, error) {
 	if ip == nil {
-		return nil, errors.New("proxy is empty")
+		return nil, ErrProxyEmpty
 	}
 	// 解析为 https 代理
-	if isHttpsProxy(ip) {
+	if isHTTPSProxy(ip) {
 		ip.ProxyType = "https"
 		return ip, nil
 	}
 	// 解析为 http 代理
-	if isHttpProxy(ip) {
+	if isHTTPProxy(ip) {
 		ip.ProxyType = "http"
 		return ip, nil
 	}
@@ -65,36 +70,36 @@ func checkIP(ip *database.IP) (*database.IP, error) {
 		return ip, nil
 	}
 	// 解析为 socks4 代理
-	if isTcpProxy(ip) {
+	if isTCPProxy(ip) {
 		ip.ProxyType = "socks4"
 		return ip, nil
 	}
 
 	// 解析为 tcp 代理
-	if isTcpProxy(ip) {
+	if isTCPProxy(ip) {
 		ip.ProxyType = "tcp"
 		return ip, nil
 	}
 
-	return nil, errors.New("proxy is not available")
+	return nil, ErrNotAvailable
 }
 
 func isSocks5Proxy(ip *database.IP) bool {
-	return requestHTTPBIN(ip, httpsHttpBin, "socks5")
+	return requestHTTPBIN(ip, httpsHTTPBin, "socks5")
 }
 
-func isTcpProxy(ip *database.IP) bool {
-	return requestHTTPBIN(ip, httpsHttpBin, "tcp")
+func isTCPProxy(ip *database.IP) bool {
+	return requestHTTPBIN(ip, httpsHTTPBin, "tcp")
 }
 
-func isHttpProxy(ip *database.IP) bool {
-	return requestHTTPBIN(ip, httpHttpBin, "http")
+func isHTTPProxy(ip *database.IP) bool {
+	return requestHTTPBIN(ip, httpHTTPBin, "http")
 }
 
-func isHttpsProxy(ip *database.IP) bool {
-	return requestHTTPBIN(ip, httpsHttpBin, "https")
+func isHTTPSProxy(ip *database.IP) bool {
+	return requestHTTPBIN(ip, httpsHTTPBin, "https")
 }
-func requestHTTPBIN(ip *database.IP, testUrl string, scheme string) bool {
+func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 	address := fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort)
 	proxy, err := url.Parse(strings.ToLower(fmt.Sprintf("%s://%s", scheme, address)))
 	if err != nil {
@@ -107,6 +112,7 @@ func requestHTTPBIN(ip *database.IP, testUrl string, scheme string) bool {
 		KeepAlive: 30 * time.Second,
 	}
 	// 设置网络传输
+	//nolint:gosec
 	netTransport := &http.Transport{
 		DialContext:           dialer.DialContext,
 		Proxy:                 http.ProxyURL(proxy),
@@ -124,20 +130,21 @@ func requestHTTPBIN(ip *database.IP, testUrl string, scheme string) bool {
 		Transport: netTransport,
 	}
 
-	begin := time.Now() //判断代理访问时间
+	begin := time.Now() // 判断代理访问时间
 
 	// 使用代理IP访问测试地址
-	res, err := httpClient.Get(testUrl)
+	//nolint:noctx
+	res, err := httpClient.Get(testURL)
 	if err != nil {
-		log.Debugf("testIp: %s, testUrl: %s: error: %v", address, testUrl, err.Error())
+		log.Debugf("testIp: %s, testURL: %s: error: %v", address, testURL, err.Error())
 		return false
 	}
 	defer res.Body.Close()
 	if res.StatusCode == http.StatusOK {
 		// 判断是否成功访问，如果成功访问StatusCode应该为200
-		speed := time.Now().Sub(begin).Nanoseconds() / 1000 / 1000 //ms
+		speed := time.Since(begin).Nanoseconds() / 1000 / 1000 // ms
 		ip.ProxySpeed = int(speed)
-		database.UpdateIp(ip)
+		database.UpdateIP(ip)
 		return true
 	}
 	return false
@@ -145,30 +152,30 @@ func requestHTTPBIN(ip *database.IP, testUrl string, scheme string) bool {
 
 // CheckProxyDB to check the ip in DB
 func CheckProxyDB() {
-	record := database.CountIp()
+	record := database.CountIP()
 	log.Infof("Before check, DB has: %d records.", record)
-	ips := database.GetAllIp()
+	ips := database.GetAllIP()
 	var wg sync.WaitGroup
 	for _, v := range ips {
 		wg.Add(1)
 		go func(ip *database.IP) {
 			defer wg.Done()
-			newIP, ok := CheckIp(ip)
+			newIP, ok := CheckIP(ip)
 			if !ok {
-				database.DeleteIp(ip)
+				database.DeleteIP(ip)
 			} else {
-				database.UpdateIp(newIP)
+				database.UpdateIP(newIP)
 			}
 		}(v)
 	}
 	wg.Wait()
-	record = database.CountIp()
+	record = database.CountIP()
 	log.Infof("After check, DB has: %d records.", record)
 }
 
 // RandomProxy .
 func RandomProxy() (ip *database.IP) {
-	ips := database.GetAllIp()
+	ips := database.GetAllIP()
 	ipCount := len(ips)
 	if ipCount == 0 {
 		log.Warnf("RandomProxy random count: %d\n", ipCount)
@@ -185,28 +192,28 @@ func RandomByProxyType(proxyType string) (ip database.IP) {
 	case "https":
 		var ips []database.IP
 		// tcp
-		ipsForTcp, err := database.GetIpByProxyType("tcp")
+		ipsForTCP, err := database.GetIPByProxyType("tcp")
 		if err == nil {
-			ips = append(ips, ipsForTcp...)
+			ips = append(ips, ipsForTCP...)
 		}
-		log.Debugf("proxy_type: tcp, count: %d ", len(ipsForTcp))
+		log.Debugf("proxy_type: tcp, count: %d ", len(ipsForTCP))
 
 		// socks5
-		ipsForSocks5, err := database.GetIpByProxyType("socks5")
+		ipsForSocks5, err := database.GetIPByProxyType("socks5")
 		if err == nil {
 			ips = append(ips, ipsForSocks5...)
 		}
 		log.Debugf("proxy_type: socks5, count: %d ", len(ipsForSocks5))
 
 		// https
-		ipsForHttps, err := database.GetIpByProxyType("https")
+		ipsForHTTPS, err := database.GetIPByProxyType("https")
 		if err == nil {
-			ips = append(ips, ipsForHttps...)
+			ips = append(ips, ipsForHTTPS...)
 		}
-		log.Debugf("proxy_type: https, count: %d ", len(ipsForHttps))
+		log.Debugf("proxy_type: https, count: %d ", len(ipsForHTTPS))
 
 		// socks4
-		ipsForSocks4, err := database.GetIpByProxyType("socks4")
+		ipsForSocks4, err := database.GetIPByProxyType("socks4")
 		if err == nil {
 			ips = append(ips, ipsForSocks4...)
 		}
@@ -221,27 +228,26 @@ func RandomByProxyType(proxyType string) (ip database.IP) {
 		return ips[randomNum]
 	case "http":
 		// http
-		ipsForHttp, err := database.GetIpByProxyType("http")
+		ipsForHTTP, err := database.GetIPByProxyType("http")
 		if err != nil {
 			return randomByProxyType(proxyType)
 		}
 
-		ipCount := len(ipsForHttp)
+		ipCount := len(ipsForHTTP)
 		if ipCount == 0 {
 			//  如果没有 tcp 类型的代理，就返回 https 类型的代理
 			return randomByProxyType(proxyType)
 		}
 
 		randomNum := randomutil.RandInt(0, ipCount)
-		log.Debugf("proxy_type: http, count: %d ", len(ipsForHttp))
-		return ipsForHttp[randomNum]
+		log.Debugf("proxy_type: http, count: %d ", len(ipsForHTTP))
+		return ipsForHTTP[randomNum]
 	default:
 		return randomByProxyType(proxyType)
 	}
-
 }
 func randomByProxyType(proxyType string) (ip database.IP) {
-	ips, err := database.GetIpByProxyType(proxyType)
+	ips, err := database.GetIPByProxyType(proxyType)
 	if err != nil {
 		log.Warn(err)
 		return database.IP{}

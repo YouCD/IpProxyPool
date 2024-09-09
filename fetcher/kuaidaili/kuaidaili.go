@@ -3,7 +3,6 @@ package kuaidaili
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/youcd/toolkit/log"
@@ -34,8 +33,8 @@ func kuaiDaiLi(proxyType string) []*database.IP {
 	log.Infow("KuaiDaiLi", "类型", proxyTypeStr(proxyType))
 
 	list := make([]*database.IP, 0)
-	indexUrl := "https://www.kuaidaili.com/free"
-	document, err := fetcher.Fetch(indexUrl)
+	indexURL := "https://www.kuaidaili.com/free"
+	document, err := fetcher.Fetch(indexURL)
 	if err != nil {
 		log.Warnf("KuaiDaiLi: 类型: %s  err:%s", proxyTypeStr(proxyType), err)
 		return list
@@ -45,7 +44,7 @@ func kuaiDaiLi(proxyType string) []*database.IP {
 	for i := 1; i <= num; i++ {
 		//  休眠3秒，防止被封
 		time.Sleep(3 * time.Second)
-		url := fmt.Sprintf("%s/%s/%d", indexUrl, proxyType, i)
+		url := fmt.Sprintf("%s/%s/%d", indexURL, proxyType, i)
 
 		documentA, err := fetcher.Fetch(url)
 		if err != nil {
@@ -53,23 +52,23 @@ func kuaiDaiLi(proxyType string) []*database.IP {
 			continue
 		}
 
-		documentA.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
-			selection.Find("tr").Each(func(i int, selection *goquery.Selection) {
-				proxyIp := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())
+		documentA.Find("table > tbody").Each(func(_ int, selection *goquery.Selection) {
+			selection.Find("tr").Each(func(_ int, selection *goquery.Selection) {
+				proxyIP := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())
 				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())
-				proxyType := strings.TrimSpace(selection.Find("td:nth-child(4)").Text())
+				proxyTyp := strings.TrimSpace(selection.Find("td:nth-child(4)").Text())
 				proxyLocation := strings.TrimSpace(selection.Find("td:nth-child(5)").Text())
 				proxySpeed := strings.TrimSpace(selection.Find("td:nth-child(6)").Text())
 
 				ip := new(database.IP)
-				ip.ProxyHost = proxyIp
+				ip.ProxyHost = proxyIP
 				ip.ProxyPort, _ = strconv.Atoi(proxyPort)
-				ip.ProxyType = proxyType
+				ip.ProxyType = proxyTyp
 				ip.ProxyLocation = proxyLocation
 				ip.ProxySpeed, _ = strconv.Atoi(proxySpeed)
 				ip.ProxySource = "https://www.kuaidaili.com"
-				ip.CreateTime = util.FormatDateTime()
-				ip.UpdateTime = util.FormatDateTime()
+				ip.CreateTime = time.Now()
+				ip.UpdateTime = time.Now()
 				list = append(list, ip)
 			})
 		})

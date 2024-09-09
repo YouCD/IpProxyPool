@@ -3,19 +3,21 @@ package ip89
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/util"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/youcd/toolkit/log"
 	"strconv"
 	"strings"
+	"time"
 )
 
+//nolint:revive
 func Ip89() []*database.IP {
 	log.Info("[89ip] fetch start")
 	defer func() {
-		recover()
-		log.Warn("[89ip] fetch error")
+		if r := recover(); r != nil {
+			log.Error(r)
+		}
 	}()
 	list := make([]*database.IP, 0)
 
@@ -47,8 +49,8 @@ func Ip89() []*database.IP {
 				ip.ProxyLocation = proxyLocation
 				ip.ProxySpeed = 100
 				ip.ProxySource = "https://www.89ip.cn"
-				ip.CreateTime = util.FormatDateTime()
-				ip.UpdateTime = util.FormatDateTime()
+				ip.CreateTime = time.Now()
+				ip.UpdateTime = time.Now()
 				list = append(list, ip)
 			})
 		})

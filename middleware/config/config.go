@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+//nolint:revive
 type System struct {
 	AppName  string `yaml:"appName"`
 	HttpAddr string `yaml:"httpAddr"`
@@ -50,11 +51,10 @@ func InitConfig() {
 		if !fileutil.PathExists(ConfigFile) {
 			log.Errorf("No such file or directory: %s", ConfigFile)
 			os.Exit(-1)
-		} else {
-			// Use config file from the flag.
-			Vip.SetConfigFile(ConfigFile)
-			Vip.SetConfigType("yaml")
 		}
+		// Use config file from the flag.
+		Vip.SetConfigFile(ConfigFile)
+		Vip.SetConfigType("yaml")
 	} else {
 		log.Errorf("Could not find config file: %s", ConfigFile)
 		os.Exit(-1)

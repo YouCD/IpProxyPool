@@ -3,7 +3,6 @@ package github
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/util"
 	"fmt"
 	"github.com/youcd/toolkit/log"
 	"net"
@@ -17,8 +16,9 @@ import (
 func fetch(name, urlStr string) []*database.IP {
 	log.Infof("[%s] fetch start", name)
 	defer func() {
-		recover()
-		log.Warnf("[%s] fetch error", name)
+		if r := recover(); r != nil {
+			log.Warnf("[%s] fetch error:%s", name, r)
+		}
 	}()
 	list := make([]*database.IP, 0)
 	parse, err := url.Parse(urlStr)
@@ -52,8 +52,8 @@ func fetch(name, urlStr string) []*database.IP {
 			ip.ProxyLocation = parse.Host
 			ip.ProxySpeed = 100
 			ip.ProxySource = proxySource
-			ip.CreateTime = util.FormatDateTime()
-			ip.UpdateTime = util.FormatDateTime()
+			ip.CreateTime = time.Now()
+			ip.UpdateTime = time.Now()
 			list = append(list, ip)
 		}(address)
 	}

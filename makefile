@@ -37,3 +37,5 @@ build-all:
 	./upx $(BINARY_DIR)/$(BINARY_NAME)-*
 clean:
 	rm -rf bin
+check:
+	@golangci-lint run ./...

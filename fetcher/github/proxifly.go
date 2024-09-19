@@ -11,24 +11,23 @@ import (
 
 func FreeProxyList() []*database.IP {
 	list := make([]*database.IP, 0)
-	socks5Url := setProxyWeb("https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt")
+	name := "FreeProxyList"
+	socks5Url := NewProxyWeb(name, "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt")
 	list = append(list, freeProxyListFetch(socks5Url, "socks5://")...)
 
-	socks4Url := setProxyWeb("https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks4/data.txt")
+	socks4Url := NewProxyWeb(name, "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks4/data.txt")
 	list = append(list, freeProxyListFetch(socks4Url, "socks4://")...)
 
-	httpURL := setProxyWeb("https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt")
+	httpURL := NewProxyWeb(name, "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt")
 	list = append(list, freeProxyListFetch(httpURL, "http://")...)
-
 	return list
 }
 
-func freeProxyListFetch(urlStr, replaceStr string) []*database.IP {
+func freeProxyListFetch(urlStr *ProxyWeb, replaceStr string) []*database.IP {
 	list := make([]*database.IP, 0)
-	log.Infof("[FreeProxyList] fetch start: %s", urlStr)
-	document, err := fetcher.Fetch(urlStr)
+	document, err := fetcher.Fetch(urlStr.GetFullURL())
 	if err != nil {
-		log.Errorf("%s fetch failed,err: %s", urlStr, err)
+		log.Errorf("%s fetch failed,err: %s", urlStr.Name, err)
 		return list
 	}
 
@@ -48,6 +47,5 @@ func freeProxyListFetch(urlStr, replaceStr string) []*database.IP {
 		ip.UpdateTime = time.Now()
 		list = append(list, ip)
 	}
-	log.Infof("[FreeProxyList] fetch done: %s, count: %d", urlStr, len(list))
 	return list
 }

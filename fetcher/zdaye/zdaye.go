@@ -13,7 +13,6 @@ import (
 //
 //	@Description: 这个站大爷 只搜索了 https 的代理
 func Zdaye() []*database.IP {
-	log.Info("[Zdaye] fetch start")
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
@@ -45,6 +44,5 @@ func Zdaye() []*database.IP {
 			list = append(list, ip)
 		})
 	})
-	log.Info("[Zdaye] fetch done")
 	return list
 }

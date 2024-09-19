@@ -10,15 +10,15 @@ import (
 //
 //nolint:revive
 type IP struct {
-	ProxyId       int64     `gorm:"primary_key; auto_increment; not null" json:"-"`
-	ProxyHost     string    `gorm:"type:varchar(255); not null; uniqueIndex:UNIQUE_HOST_PORT" json:"proxyHost"`
-	ProxyPort     int       `gorm:"type:int(11); not null; uniqueIndex:UNIQUE_HOST_PORT" json:"proxyPort"`
-	ProxyType     string    `gorm:"type:varchar(64); not null" json:"proxyType"`
-	ProxyLocation string    `gorm:"type:varchar(255); default null" json:"proxyLocation"`
-	ProxySpeed    int       `gorm:"type:int(20); not null; default 0" json:"proxySpeed"`
-	ProxySource   string    `gorm:"type:varchar(64); not null;" json:"proxySource"`
-	CreateTime    time.Time `gorm:"type:time; not null" json:"-"`
-	UpdateTime    time.Time `gorm:"type:time; default ''" json:"updateTime"`
+	ProxyId       int64     `gorm:"column:proxy_id;primaryKey;autoIncrement;not null" json:"proxyId"`
+	ProxyHost     string    `gorm:"column:proxy_host;type:varchar(255);not null;uniqueIndex:UNIQUE_HOST_PORT,uniqueIndexLength:191" json:"proxyHost"`
+	ProxyPort     int       `gorm:"column:proxy_port;type:int;not null;uniqueIndex:UNIQUE_HOST_PORT" json:"proxyPort"`
+	ProxyType     string    `gorm:"column:proxy_type;type:varchar(64);not null" json:"proxyType"`
+	ProxyLocation string    `gorm:"column:proxy_location;type:varchar(255);not null" json:"proxyLocation"`
+	ProxySpeed    int       `gorm:"column:proxy_speed;type:int;not null;default:0" json:"proxySpeed"`
+	ProxySource   string    `gorm:"column:proxy_source;type:varchar(64);not null" json:"proxySource"`
+	CreateTime    time.Time `gorm:"column:create_time;type:datetime;not null" json:"createTime"`
+	UpdateTime    time.Time `gorm:"column:update_time;type:datetime;not null" json:"updateTime"`
 }
 
 func (i *IP) TableName() string {
@@ -27,27 +27,25 @@ func (i *IP) TableName() string {
 
 // SaveIP 保存数据到数据库
 func SaveIP(ip *IP) {
-	db := GetDB().Begin()
+	if ip.ProxyHost == "" {
+		return
+	}
 	ip.ProxyType = strings.ToLower(ip.ProxyType)
 	ipModel := GetIPByProxyHost(ip.ProxyHost)
-	if ipModel.ProxyHost == "" {
-		err := db.Model(&IP{}).Create(ip).Error
-		if err != nil {
-			log.Errorf("save ip: %s, error msg: %v", ip.ProxyHost, err)
-			db.Rollback()
-		}
-	} else {
-		UpdateIP(ipModel)
+	if ipModel.ProxyId != 0 {
+		UpdateIP(ip)
+		return
 	}
-	db.Commit()
+	if err := db.Model(&IP{}).Create(ip).Error; err != nil {
+		log.Errorf("save ip: %s, error msg: %v", ip.ProxyHost, err)
+	}
 }
 
 // GetIPByProxyHost 根据 proxyHost 获取一条数据
 func GetIPByProxyHost(host string) *IP {
-	ipModel := new(IP)
-	err := db.Model(&IP{}).Where("proxy_host = ?", host).Find(ipModel)
-	if err.Error != nil {
-		log.Errorf("get ip: %s, error msg: %v", ipModel.ProxyHost, err.Error)
+	ipModel := &IP{}
+	if err := db.Model(&IP{}).Where("proxy_host = ?", host).Scan(ipModel).Error; err != nil {
+		log.Errorf("get ip: %s, error msg: %s", host, err)
 		return nil
 	}
 	return ipModel
@@ -89,43 +87,40 @@ func GetIPByProxyType(proxyType string) ([]IP, error) {
 
 // UpdateIP 更新数据
 func UpdateIP(ip *IP) {
-	db := GetDB().Begin()
-	ipModel := ip
 	ipMap := make(map[string]interface{}, 0)
 	ipMap["proxy_speed"] = ip.ProxySpeed
 	ipMap["proxy_type"] = strings.ToLower(ip.ProxyType)
-
 	ipMap["update_time"] = time.Now()
-	if ipModel.ProxyId != 0 {
-		err := db.Model(&IP{}).Where("proxy_id = ?", ipModel.ProxyId).Updates(ipMap)
-		if err.Error != nil {
-			log.Errorf("update ip: %s, error msg: %v", ipModel.ProxyHost, err.Error)
-			db.Rollback()
+	if ip.ProxyId != 0 {
+		tx := GetDB().Begin()
+		if err := tx.Model(ip).Where("proxy_id = ?", ip.ProxyId).Updates(ipMap).Error; err != nil {
+			log.Errorf("update ip: %s, error msg: %v", ip.ProxyHost, err)
+			tx.Rollback()
+		} else {
+			tx.Commit()
 		}
 	}
-	db.Commit()
 }
 
 // DeleteIP 删除数据
 func DeleteIP(ip *IP) {
-	db := GetDB().Begin()
+	tx := GetDB().Begin()
 	ipModel := ip
-	err := db.Model(&IP{}).Where("proxy_id = ?", ipModel.ProxyId).Delete(ipModel)
+	err := tx.Model(&IP{}).Where("proxy_id = ?", ipModel.ProxyId).Delete(ipModel)
 	if err.Error != nil {
 		log.Errorf("delete ip: %s, error msg: %v", ipModel.ProxyHost, err.Error)
-		db.Rollback()
+		tx.Rollback()
 	}
-	db.Commit()
+	tx.Commit()
 }
 func DeleteByIP(ip string) {
-	db := GetDB().Begin()
-	ipModel := IP{ProxyHost: ip}
-	err := db.Model(&IP{}).Where("proxy_proxy_host = ?", ip).Delete(ipModel)
-	if err.Error != nil {
-		log.Errorf("delete ip: %s, error msg: %v", ipModel.ProxyHost, err.Error)
-		db.Rollback()
+	tx := GetDB().Begin()
+	ipModel := IP{}
+	if err := tx.Model(&IP{}).Where("proxy_host = ?", ip).Scan(&ipModel).Delete(&ipModel).Error; err != nil {
+		log.Errorf("delete ip: %s, error msg: %v", ipModel.ProxyHost, err)
+		tx.Rollback()
 	}
-	db.Commit()
+	tx.Commit()
 }
 
 func Count() map[string]int64 {

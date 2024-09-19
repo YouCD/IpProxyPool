@@ -9,26 +9,25 @@ import (
 	"time"
 )
 
-func HideIPMe() []*database.IP {
+func ZloiUser() []*database.IP {
 	list := make([]*database.IP, 0)
 
-	HTTPSUrl := setProxyWeb("https://raw.githubusercontent.com/zloi-user/hideip.me/main/https.txt")
+	name := "zloiUser"
+	HTTPSUrl := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/main/https.txt")
 	list = append(list, hideIPMeFetch(HTTPSUrl)...)
 
-	socks4Url := setProxyWeb("https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks4.txt")
+	socks4Url := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks4.txt")
 	list = append(list, hideIPMeFetch(socks4Url)...)
 
-	socks5 := setProxyWeb("https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks5.txt")
+	socks5 := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks5.txt")
 	list = append(list, hideIPMeFetch(socks5)...)
-
 	return list
 }
-func hideIPMeFetch(urlStr string) []*database.IP {
-	log.Infof("[hideip.me] fetch start: %s", urlStr)
+func hideIPMeFetch(urlStr *ProxyWeb) []*database.IP {
 	list := make([]*database.IP, 0)
-	document, err := fetcher.Fetch(urlStr)
+	document, err := fetcher.Fetch(urlStr.GetFullURL())
 	if err != nil {
-		log.Errorf("%s fetch failed,err:%s", urlStr, err)
+		log.Errorf("%s fetch failed,err:%s", urlStr.GetFullURL(), err)
 		return list
 	}
 	for _, s := range strings.Split(document.Text(), "\n") {
@@ -46,6 +45,5 @@ func hideIPMeFetch(urlStr string) []*database.IP {
 		ip.UpdateTime = time.Now()
 		list = append(list, ip)
 	}
-	log.Infof("[hideip.me] fetch done: %s, count: %d", urlStr, len(list))
 	return list
 }

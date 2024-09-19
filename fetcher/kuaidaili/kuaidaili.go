@@ -30,8 +30,6 @@ func proxyTypeStr(typ string) string {
 	return "未知"
 }
 func kuaiDaiLi(proxyType string) []*database.IP {
-	log.Infow("KuaiDaiLi", "类型", proxyTypeStr(proxyType))
-
 	list := make([]*database.IP, 0)
 	indexURL := "https://www.kuaidaili.com/free"
 	document, err := fetcher.Fetch(indexURL)
@@ -73,6 +71,5 @@ func kuaiDaiLi(proxyType string) []*database.IP {
 			})
 		})
 	}
-	log.Info("KuaiDaiLi fetch done")
 	return list
 }

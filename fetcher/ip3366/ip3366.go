@@ -22,7 +22,6 @@ func Ip3366() []*database.IP {
 }
 
 func ip3366(proxyType int) []*database.IP {
-	log.Info("[ip3366] fetch start")
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
@@ -66,6 +65,5 @@ func ip3366(proxyType int) []*database.IP {
 			})
 		})
 	}
-	log.Info("[ip3366] fetch done")
 	return list
 }

@@ -1,7 +1,7 @@
 package fetcher
 
 import (
-	"IpProxyPool/util/headerutil"
+	"IpProxyPool/util"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -16,7 +16,9 @@ import (
 )
 
 func Fetch(url string) (*goquery.Document, error) {
-	log.Infof("Fetch url: %s", url)
+	log.Debugf("Fetch url: %s", url)
+	var count int
+Retry:
 	// &cookiejar.Options{PublicSuffixList: publicsuffix.List}，这是为了可以根据域名安全地设置cookies
 	cookieJar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
@@ -25,14 +27,14 @@ func Fetch(url string) (*goquery.Document, error) {
 	//nolint:gosec
 	client := &http.Client{
 		Jar:     cookieJar,
-		Timeout: 60 * time.Second,
+		Timeout: 100 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	req.Header.Set("Proxy-Switch-Ip", "yes")
-	req.Header.Set("User-Agent", headerutil.RandomUserAgent())
+	req.Header.Set("User-Agent", util.RandomUserAgent())
 	req.Header.Set("Access-Control-Allow-Origin", "*")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.")
 	// req.Header.Set("Accept-Encoding", "gzip, deflate, br")
@@ -45,7 +47,11 @@ func Fetch(url string) (*goquery.Document, error) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		log.Errorf("http get error: %v", err)
+		count++
+		if count < 3 {
+			time.Sleep(time.Second * 1)
+			goto Retry
+		}
 		return nil, fmt.Errorf("http get error: %w", err)
 	}
 	defer func() {

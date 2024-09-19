@@ -2,7 +2,7 @@ package storage
 
 import (
 	"IpProxyPool/middleware/database"
-	"IpProxyPool/util/randomutil"
+	"IpProxyPool/util"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -27,10 +27,17 @@ var (
 
 // CheckProxy .
 func CheckProxy(ip *database.IP) {
-	if IP, ok := CheckIP(ip); ok {
-		database.SaveIP(IP)
-		log.Debug("proxy is good           ", IP)
+	now := time.Now()
+	if ip == nil {
+		log.Error("CheckProxy empty ip")
+		return
 	}
+	var flag bool
+	if item, ok := CheckIP(ip); ok {
+		database.SaveIP(item)
+		flag = true
+	}
+	log.Infof("Checking proxy: %s://%s:%d, isOK: %t, Duration: %s", ip.ProxyType, ip.ProxyHost, ip.ProxyPort, flag, time.Since(now))
 }
 
 // CheckIP
@@ -53,35 +60,38 @@ func checkIP(ip *database.IP) (*database.IP, error) {
 	if ip == nil {
 		return nil, ErrProxyEmpty
 	}
-	// 解析为 https 代理
-	if isHTTPSProxy(ip) {
-		ip.ProxyType = "https"
-		return ip, nil
-	}
-	// 解析为 http 代理
-	if isHTTPProxy(ip) {
-		ip.ProxyType = "http"
-		return ip, nil
+	ip.ProxyType = strings.ToLower(ip.ProxyType)
+
+	resultChan := make(chan *database.IP, 1)
+	defer close(resultChan)
+
+	// Helper function to send results to channels
+	sendResult := func(proxyType string, proxyCheckFunc func(*database.IP) bool) {
+		if proxyCheckFunc(ip) {
+			ip.ProxyType = proxyType
+			resultChan <- ip
+		}
 	}
 
-	// 解析为 socks5 代理
-	if isSocks5Proxy(ip) {
-		ip.ProxyType = "socks5"
-		return ip, nil
-	}
-	// 解析为 socks4 代理
-	if isTCPProxy(ip) {
-		ip.ProxyType = "socks4"
-		return ip, nil
-	}
+	// Check proxy types in parallel
+	go sendResult("https", isHTTPSProxy)
+	go sendResult("http", isHTTPProxy)
+	go sendResult("socks5", isSocks5Proxy)
+	go sendResult("socks4", isSocks4Proxy)
+	go sendResult("tcp", isTCPProxy)
 
-	// 解析为 tcp 代理
-	if isTCPProxy(ip) {
-		ip.ProxyType = "tcp"
-		return ip, nil
-	}
+	timerChan := time.NewTimer(60 * time.Second)
+	defer timerChan.Stop()
 
-	return nil, ErrNotAvailable
+	// Wait for the first result or timeout
+	select {
+	case result := <-resultChan:
+		return result, nil
+	case <-timerChan.C:
+		proxyStr := fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort)
+		log.Warnf("Checking proxy timeout: %s", proxyStr)
+		return nil, ErrNotAvailable
+	}
 }
 
 func isSocks5Proxy(ip *database.IP) bool {
@@ -90,6 +100,9 @@ func isSocks5Proxy(ip *database.IP) bool {
 
 func isTCPProxy(ip *database.IP) bool {
 	return requestHTTPBIN(ip, httpsHTTPBin, "tcp")
+}
+func isSocks4Proxy(ip *database.IP) bool {
+	return requestHTTPBIN(ip, httpsHTTPBin, "socks4")
 }
 
 func isHTTPProxy(ip *database.IP) bool {
@@ -101,15 +114,16 @@ func isHTTPSProxy(ip *database.IP) bool {
 }
 func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 	address := fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort)
-	proxy, err := url.Parse(strings.ToLower(fmt.Sprintf("%s://%s", scheme, address)))
+	rawURL := strings.ToLower(fmt.Sprintf("%s://%s", scheme, address))
+	proxy, err := url.Parse(rawURL)
 	if err != nil {
 		return false
 	}
 
 	dialer := &net.Dialer{
 		// 限制创建一个TCP连接使用的时间（如果需要一个新的链接）
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
+		Timeout:   10 * time.Second,
+		KeepAlive: 10 * time.Second,
 	}
 	// 设置网络传输
 	//nolint:gosec
@@ -123,6 +137,9 @@ func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 		IdleConnTimeout:       20 * time.Second,
 		ResponseHeaderTimeout: time.Second * time.Duration(10),
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		// DialTLSContext: func(_ context.Context, network, addr string) (net.Conn, error) {
+		// 	return tls.Dial(network, addr, &tls.Config{InsecureSkipVerify: true})
+		// },
 	}
 
 	// 创建连接客户端
@@ -136,7 +153,7 @@ func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 	//nolint:noctx
 	res, err := httpClient.Get(testURL)
 	if err != nil {
-		log.Debugf("testIp: %s, testURL: %s: error: %v", address, testURL, err.Error())
+		log.Debugf("proxy: %s, error: %s", rawURL, err)
 		return false
 	}
 	defer res.Body.Close()
@@ -152,8 +169,8 @@ func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 
 // CheckProxyDB to check the ip in DB
 func CheckProxyDB() {
-	record := database.CountIP()
-	log.Infof("Before check, DB has: %d records.", record)
+	start := time.Now()
+	beforeRecord := database.CountIP()
 	ips := database.GetAllIP()
 	var wg sync.WaitGroup
 	for _, v := range ips {
@@ -169,8 +186,8 @@ func CheckProxyDB() {
 		}(v)
 	}
 	wg.Wait()
-	record = database.CountIP()
-	log.Infof("After check, DB has: %d records.", record)
+	afterRecord := database.CountIP()
+	log.Infof("Before cout: %d, After cout:%d, Duration: %s", beforeRecord, afterRecord, time.Since(start))
 }
 
 // RandomProxy .
@@ -181,7 +198,7 @@ func RandomProxy() (ip *database.IP) {
 		log.Warnf("RandomProxy random count: %d\n", ipCount)
 		return nil
 	}
-	randomNum := randomutil.RandInt(0, ipCount)
+	randomNum := util.RandInt(0, ipCount)
 	return ips[randomNum]
 }
 
@@ -224,7 +241,7 @@ func RandomByProxyType(proxyType string) (ip database.IP) {
 			//  如果没有 tcp 类型的代理，就返回 https 类型的代理
 			return randomByProxyType(proxyType)
 		}
-		randomNum := randomutil.RandInt(0, ipCount)
+		randomNum := util.RandInt(0, ipCount)
 		return ips[randomNum]
 	case "http":
 		// http
@@ -239,7 +256,7 @@ func RandomByProxyType(proxyType string) (ip database.IP) {
 			return randomByProxyType(proxyType)
 		}
 
-		randomNum := randomutil.RandInt(0, ipCount)
+		randomNum := util.RandInt(0, ipCount)
 		log.Debugf("proxy_type: http, count: %d ", len(ipsForHTTP))
 		return ipsForHTTP[randomNum]
 	default:
@@ -257,6 +274,6 @@ func randomByProxyType(proxyType string) (ip database.IP) {
 		log.Warnf("RandomByProxyType random count: %d\n", ipCount)
 		return database.IP{}
 	}
-	randomNum := randomutil.RandInt(0, ipCount)
+	randomNum := util.RandInt(0, ipCount)
 	return ips[randomNum]
 }

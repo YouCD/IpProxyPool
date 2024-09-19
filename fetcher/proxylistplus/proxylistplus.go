@@ -13,7 +13,6 @@ import (
 )
 
 func ProxyListPlus() []*database.IP {
-	log.Info("[proxylistplus] fetch start")
 	list := make([]*database.IP, 0)
 	indexURL := "https://list.proxylistplus.com"
 	for i := 1; i <= 6; i++ {
@@ -42,6 +41,5 @@ func ProxyListPlus() []*database.IP {
 			})
 		})
 	}
-	log.Info("[proxylistplus] fetch done")
 	return list
 }

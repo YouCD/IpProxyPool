@@ -3,34 +3,32 @@ package github
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"fmt"
 	"github.com/youcd/toolkit/log"
 	"net"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-func fetch(name, urlStr string) []*database.IP {
-	log.Infof("[%s] fetch start", name)
+func fetch(proxyWeb *ProxyWeb) []*database.IP {
+	var count int
 	defer func() {
 		if r := recover(); r != nil {
-			log.Warnf("[%s] fetch error:%s", name, r)
+			log.Warnf("[%s] fetch error:%s", proxyWeb.Name, r)
 		}
 	}()
 	list := make([]*database.IP, 0)
-	parse, err := url.Parse(urlStr)
+Retry:
+	document, err := fetcher.Fetch(proxyWeb.GetFullURL())
 	if err != nil {
-		log.Error(err)
-		return nil
-	}
-
-	proxySource := fmt.Sprintf("%s://%s", parse.Scheme, parse.Host)
-	document, err := fetcher.Fetch(urlStr)
-	if err != nil {
-		log.Errorf("[%s] fetch failed,url: %s,err:%s", name, urlStr, err)
+		proxyWeb.ChangeProxy()
+		count++
+		if count < 3 {
+			log.Errorf("[%s] ChangeProxy: %s ", proxyWeb.Name, proxyWeb.ProxyURL)
+			goto Retry
+		}
+		log.Errorf("[%s] fetch failed,url: %s,err:%s", proxyWeb.Name, proxyWeb.GetFullURL(), err)
 		return list
 	}
 	split := strings.Split(document.Text(), "\n")
@@ -49,16 +47,14 @@ func fetch(name, urlStr string) []*database.IP {
 			ip := new(database.IP)
 			ip.ProxyHost = ipPortObj[0]
 			ip.ProxyPort, _ = strconv.Atoi(ipPortObj[1])
-			ip.ProxyLocation = parse.Host
+			ip.ProxyLocation = proxyWeb.Name
 			ip.ProxySpeed = 100
-			ip.ProxySource = proxySource
+			ip.ProxySource = proxyWeb.Name
 			ip.CreateTime = time.Now()
 			ip.UpdateTime = time.Now()
 			list = append(list, ip)
 		}(address)
 	}
 	wg.Wait()
-
-	log.Infof("[%s] fetch done", name)
 	return list
 }

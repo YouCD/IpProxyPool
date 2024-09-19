@@ -13,7 +13,6 @@ import (
 
 //nolint:revive
 func Ip89() []*database.IP {
-	log.Info("[89ip] fetch start")
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
@@ -55,6 +54,5 @@ func Ip89() []*database.IP {
 			})
 		})
 	}
-	log.Info("[89ip] fetch done")
 	return list
 }

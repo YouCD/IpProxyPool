@@ -1,8 +1,4 @@
-package headerutil
-
-import (
-	"IpProxyPool/util/randomutil"
-)
+package util
 
 var userAgentList = [...]string{
 	"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36",
@@ -95,6 +91,6 @@ var userAgentList = [...]string{
 
 func RandomUserAgent() string {
 	userAgentCount := len(userAgentList)
-	randomNum := randomutil.RandInt(0, userAgentCount)
+	randomNum := RandInt(0, userAgentCount)
 	return userAgentList[randomNum]
 }

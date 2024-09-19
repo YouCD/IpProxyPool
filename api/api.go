@@ -4,7 +4,7 @@ import (
 	"IpProxyPool/middleware/config"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
-	"IpProxyPool/util/iputil"
+	"IpProxyPool/util"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -33,7 +33,7 @@ func Run(setting *config.System) {
 
 	log.Infof("Server run at:")
 	log.Infof("- Local:   http://localhost:%s ", setting.HttpPort)
-	log.Infof("- Network: http://%s:%s ", iputil.GetLocalHost(), setting.HttpPort)
+	log.Infof("- Network: http://%s:%s ", util.GetLocalHost(), setting.HttpPort)
 
 	err := server.ListenAndServe()
 	//nolint:err113

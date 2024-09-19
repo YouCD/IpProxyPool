@@ -18,6 +18,7 @@ linters:
     - varnamelen
     #- nolintlint
     - gochecknoinits
+    - exportloopref
     - nonamedreturns
     - ireturn
     - nlreturn

@@ -11,6 +11,7 @@ import (
 	sdkLog "log"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -58,14 +59,7 @@ func InitDB(setting *config.Database) *gorm.DB {
 			// 连接数据库的具体数据库名称
 			setting.DbName,
 		)
-		newLogger := logger.New(
-			sdkLog.New(os.Stdout, "\r\n", sdkLog.LstdFlags), // io writer
-			logger.Config{
-				SlowThreshold: time.Second,   // 慢 SQL 阈值
-				LogLevel:      logger.Silent, // Log level
-				Colorful:      false,         // 禁用彩色打印
-			},
-		)
+
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 			// NamingStrategy: schema.NamingStrategy{
 			// 	TablePrefix:   setting.Prefix, // 表名前缀，`User` 的表名应该是 `t_users`
@@ -74,7 +68,7 @@ func InitDB(setting *config.Database) *gorm.DB {
 			PrepareStmt:            true, // 执行任何 SQL 时都创建并缓存预编译语句，可以提高后续的调用速度
 			DisableAutomaticPing:   false,
 			SkipDefaultTransaction: true, // 对于写操作（创建、更新、删除），为了确保数据的完整性，GORM 会将它们封装在事务内运行。但这会降低性能，你可以在初始化时禁用这种方式
-			Logger:                 newLogger,
+			Logger:                 dynamicLogger(),
 			AllowGlobalUpdate:      false,
 		})
 		if err != nil {
@@ -114,4 +108,29 @@ func KeepAlivedDb(engine *sql.DB) {
 			log.Errorf("database ping error: %v\n", err.Error())
 		}
 	}
+}
+func dynamicLogger() logger.Interface {
+	// 设置日志级别
+	logLevel := func() logger.LogLevel {
+		if strings.ToLower(config.ServerSetting.Log.Level) == "debug" {
+			return logger.Info
+		}
+		return logger.Silent
+	}
+	newLogger := logger.New(
+		sdkLog.New(os.Stdout, "\r\n", sdkLog.LstdFlags), // io writer
+		logger.Config{
+			SlowThreshold: time.Second, // 慢 SQL 阈值
+			LogLevel:      logLevel(),  // Log level{}
+			Colorful:      false,       // 禁用彩色打印
+		},
+	)
+	go func() {
+		for {
+			time.Sleep(time.Second * 30)
+			db.Logger = db.Logger.LogMode(logLevel())
+		}
+	}()
+
+	return newLogger
 }

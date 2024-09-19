@@ -6,7 +6,7 @@ import (
 )
 
 func TestHideIPMe(t *testing.T) {
-	for _, ip := range HideIPMe() {
+	for _, ip := range ZloiUser() {
 		fmt.Println(ip)
 	}
 }

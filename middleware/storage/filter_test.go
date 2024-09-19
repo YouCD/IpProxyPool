@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/youcd/toolkit/log"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -17,7 +18,6 @@ func init() {
 	database.InitDB(&setting.Database)
 }
 func TestCheckProxyDB(t *testing.T) {
-
 	CheckProxyDB()
 }
 
@@ -30,8 +30,8 @@ func TestCheckIp(t *testing.T) {
 		ProxyLocation: "SSL高匿_中国阿里云",
 		ProxySpeed:    1046,
 		ProxySource:   "http://www.ip3366.net",
-		CreateTime:    "",
-		UpdateTime:    "",
+		CreateTime:    time.Now(),
+		UpdateTime:    time.Now(),
 	}
 	ip2 := &database.IP{
 		ProxyId:       4842,
@@ -41,8 +41,8 @@ func TestCheckIp(t *testing.T) {
 		ProxyLocation: "SSL高匿_上海市腾讯云",
 		ProxySpeed:    1046,
 		ProxySource:   "http://www.ip3366.net",
-		CreateTime:    "",
-		UpdateTime:    "",
+		CreateTime:    time.Now(),
+		UpdateTime:    time.Now(),
 	}
 	ip3 := &database.IP{
 		ProxyId:       4842,
@@ -52,8 +52,8 @@ func TestCheckIp(t *testing.T) {
 		ProxyLocation: "SSL高匿_上海市腾讯云",
 		ProxySpeed:    1046,
 		ProxySource:   "http://www.ip3366.net",
-		CreateTime:    "",
-		UpdateTime:    "",
+		CreateTime:    time.Now(),
+		UpdateTime:    time.Now(),
 	}
 
 	fmt.Println(ip2)

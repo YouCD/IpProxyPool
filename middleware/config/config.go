@@ -1,10 +1,9 @@
 package config
 
 import (
-	"IpProxyPool/util/fileutil"
-	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+	"github.com/youcd/toolkit/file"
 	"github.com/youcd/toolkit/log"
 	"os"
 	"path"
@@ -34,9 +33,10 @@ type Log struct {
 }
 
 type YamlSetting struct {
-	System   System   `yaml:"system"`
-	Database Database `yaml:"database"`
-	Log      Log      `yaml:"log"`
+	System      System   `yaml:"system"`
+	Database    Database `yaml:"database"`
+	Log         Log      `yaml:"log"`
+	GithubProxy []string `yaml:"githubProxy"`
 }
 
 var (
@@ -48,7 +48,7 @@ var (
 // InitConfig reads in config file and ENV variables if set.
 func InitConfig() {
 	if ConfigFile != "" {
-		if !fileutil.PathExists(ConfigFile) {
+		if !file.Exists(ConfigFile) {
 			log.Errorf("No such file or directory: %s", ConfigFile)
 			os.Exit(-1)
 		}
@@ -67,7 +67,6 @@ func InitConfig() {
 	Vip.WatchConfig()
 	Vip.OnConfigChange(func(e fsnotify.Event) {
 		log.Infof("Config file changed: %s\n", e.Name)
-		fmt.Printf("Config file changed: %s\n", e.Name)
 		ServerSetting = GetConfig(Vip)
 		log.SetLogLevel(ServerSetting.Log.Level)
 		switch strings.ToLower(ServerSetting.Log.Mode) {

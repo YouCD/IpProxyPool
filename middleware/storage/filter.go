@@ -3,6 +3,7 @@ package storage
 import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/util"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -47,53 +48,62 @@ func CheckProxy(ip *database.IP) {
 //	@return *database.IP
 //	@return bool
 func CheckIP(ip *database.IP) (*database.IP, bool) {
-	d, err := checkIP(ip)
-	if err != nil {
-		log.Debug(err)
-		return nil, false
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 60*time.Second)
+	defer func() {
+		//nolint:gosimple
+		select {
+		case <-ctx.Done():
+			time.Sleep(5 * time.Second)
+			cancelFunc()
+		}
+	}()
+	d := checkIP(ctx, ip)
+	if d == nil {
+		return ip, false
 	}
-
 	return d, true
 }
-
-func checkIP(ip *database.IP) (*database.IP, error) {
+func checkIP(ctx context.Context, ip *database.IP) *database.IP {
 	if ip == nil {
-		return nil, ErrProxyEmpty
+		return nil
 	}
+	if _, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort), 3*time.Second); err != nil {
+		return nil
+	}
+	resultChan := make(chan *database.IP, 1)
+	var wg sync.WaitGroup
 	ip.ProxyType = strings.ToLower(ip.ProxyType)
 
-	resultChan := make(chan *database.IP, 1)
-	defer close(resultChan)
-
 	// Helper function to send results to channels
-	sendResult := func(proxyType string, proxyCheckFunc func(*database.IP) bool) {
-		if proxyCheckFunc(ip) {
-			ip.ProxyType = proxyType
-			resultChan <- ip
+	sendResult := func(ctx context.Context, proxyType string, proxyCheckFunc func(*database.IP) bool) {
+		defer wg.Done() // Decrease WaitGroup counter when done
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if proxyCheckFunc(ip) {
+				ip.ProxyType = proxyType
+				select {
+				case resultChan <- ip:
+				default: // If resultChan already has a result, skip
+				}
+			}
 		}
 	}
 
-	// Check proxy types in parallel
-	go sendResult("https", isHTTPSProxy)
-	go sendResult("http", isHTTPProxy)
-	go sendResult("socks5", isSocks5Proxy)
-	go sendResult("socks4", isSocks4Proxy)
-	go sendResult("tcp", isTCPProxy)
+	wg.Add(5)
+	go sendResult(ctx, "https", isHTTPSProxy)
+	go sendResult(ctx, "http", isHTTPProxy)
+	go sendResult(ctx, "socks5", isSocks5Proxy)
+	go sendResult(ctx, "socks4", isSocks4Proxy)
+	go sendResult(ctx, "tcp", isTCPProxy)
 
-	timerChan := time.NewTimer(60 * time.Second)
-	defer timerChan.Stop()
-
-	// Wait for the first result or timeout
-	select {
-	case result := <-resultChan:
-		return result, nil
-	case <-timerChan.C:
-		proxyStr := fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort)
-		log.Warnf("Checking proxy timeout: %s", proxyStr)
-		return nil, ErrNotAvailable
-	}
+	go func() {
+		wg.Wait()         // Wait for all goroutines to finish
+		close(resultChan) // Close the channel after all goroutines finish
+	}()
+	return <-resultChan
 }
-
 func isSocks5Proxy(ip *database.IP) bool {
 	return requestHTTPBIN(ip, httpsHTTPBin, "socks5")
 }
@@ -179,6 +189,7 @@ func CheckProxyDB() {
 			defer wg.Done()
 			newIP, ok := CheckIP(ip)
 			if !ok {
+				log.Warnf("CheckProxyDB proxy: %s, error: %s", ip.ProxyHost, ErrNotAvailable)
 				database.DeleteIP(ip)
 			} else {
 				database.UpdateIP(newIP)

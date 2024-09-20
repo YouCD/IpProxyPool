@@ -32,7 +32,7 @@ func Task() {
 	numConsumers := 30 // 设置消费者数量
 	for i := range numConsumers {
 		go func(consumerID int) {
-			log.Infof("Starting consumer %d", consumerID)
+			log.Debugf("Starting consumer %d", consumerID)
 			for {
 				ip := <-ipChan
 				if ip == nil {
@@ -40,7 +40,7 @@ func Task() {
 					continue
 				}
 				proxyStr := fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort)
-				log.Infof("Consumer %d checking IP: %s", consumerID, proxyStr)
+				log.Debugf("Consumer %d checking IP: %s", consumerID, proxyStr)
 				storage.CheckProxy(ip)
 			}
 		}(i)

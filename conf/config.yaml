@@ -16,7 +16,7 @@ database:
   password: 'P@ssw0rd'
 githubProxy:
   - https://git.886.be
-  - https://gh.api.99988866.xyz
+  - https://gh-proxy.com
 
 # logger configuration
 log:

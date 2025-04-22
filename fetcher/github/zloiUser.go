@@ -13,13 +13,13 @@ func ZloiUser() []*database.IP {
 	list := make([]*database.IP, 0)
 
 	name := "zloiUser"
-	HTTPSUrl := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/main/https.txt")
+	HTTPSUrl := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/https.txt")
 	list = append(list, hideIPMeFetch(HTTPSUrl)...)
 
-	socks4Url := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks4.txt")
+	socks4Url := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks4.txt")
 	list = append(list, hideIPMeFetch(socks4Url)...)
 
-	socks5 := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks5.txt")
+	socks5 := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks5.txt")
 	list = append(list, hideIPMeFetch(socks5)...)
 	return list
 }

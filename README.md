@@ -39,7 +39,7 @@
 - [89免费代理](https://www.89ip.cn)
 - [~~66免费代理网~~](http://www.66ip.cn)
 - [云代理](http://www.ip3366.net)
-- [快代理](http://www.kuaidaili.com)
+- [~~快代理~~](http://www.kuaidaili.com)
 - [~~Proxylist+~~](https://list.proxylistplus.com)
 - [openproxylist](https://openproxylist.com/)
 - [Geonode](https://geonode.com/)

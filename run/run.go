@@ -5,9 +5,7 @@ import (
 	"IpProxyPool/fetcher/github"
 	"IpProxyPool/fetcher/ip3366"
 	"IpProxyPool/fetcher/ip89"
-	"IpProxyPool/fetcher/kuaidaili"
 	"IpProxyPool/fetcher/proxylistplus"
-	"IpProxyPool/fetcher/zdaye"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
 	"fmt"
@@ -65,8 +63,6 @@ func run(ipChan chan<- *database.IP) {
 		// "66ip":          ip66.Ip66,
 		"89ip":              ip89.Ip89,
 		"ip3366":            ip3366.Ip3366,
-		"Zdaye":             zdaye.Zdaye,
-		"KuaiDaiLi":         kuaidaili.KuaiDaiLi,
 		"proxylistplus":     proxylistplus.ProxyListPlus,
 		"TheSpeedX":         github.TheSpeedX,
 		"OpenProxyList":     github.OpenProxyList,

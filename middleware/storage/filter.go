@@ -7,13 +7,14 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/youcd/toolkit/log"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/youcd/toolkit/log"
 )
 
 const (
@@ -38,7 +39,11 @@ func CheckProxy(ip *database.IP) {
 		database.SaveIP(item)
 		flag = true
 	}
-	log.Infof("Checking proxy: %s://%s:%d, isOK: %t, Duration: %s", ip.ProxyType, ip.ProxyHost, ip.ProxyPort, flag, time.Since(now))
+	msg := fmt.Sprintf("Checking proxy: %s:%d, isOK: %t, Duration: %s", ip.ProxyHost, ip.ProxyPort, flag, time.Since(now))
+	if ip.ProxyType != "" {
+		msg = fmt.Sprintf("Checking proxy: %s://%s:%d, isOK: %t, Duration: %s", strings.ToLower(ip.ProxyType), ip.ProxyHost, ip.ProxyPort, flag, time.Since(now))
+	}
+	log.Infof(msg)
 }
 
 // CheckIP

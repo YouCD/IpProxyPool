@@ -23,7 +23,7 @@ log:
   filePath: logs
   fileName: run.log
   # Either "info", "warn", "error", "debug", default is "info"
-  level: info
+  level: debug
   # Can be "console" and "file", default is "console"
   # Use comma to separate multiple modes, e.g. "console, file"
   mode: console

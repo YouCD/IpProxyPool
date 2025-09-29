@@ -1,13 +1,15 @@
 package config
 
 import (
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
-	"github.com/youcd/toolkit/file"
-	"github.com/youcd/toolkit/log"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/natefinch/lumberjack"
+	"github.com/spf13/viper"
+	"github.com/youcd/toolkit/file"
+	"github.com/youcd/toolkit/log"
 )
 
 //nolint:revive
@@ -71,20 +73,36 @@ func InitConfig() {
 		log.SetLogLevel(ServerSetting.Log.Level)
 		switch strings.ToLower(ServerSetting.Log.Mode) {
 		case "file":
-			log.Init(false)
+			log.Init(&log.Config{
+				LumberjackCfg: &lumberjack.Logger{
+					Filename:  path.Join(ServerSetting.Log.FilePath, ServerSetting.Log.FileName),
+					LocalTime: true,
+					Compress:  false,
+				},
+				Stdout: false,
+			})
 			log.Info(path.Join(ServerSetting.Log.FilePath, ServerSetting.Log.FileName))
-			log.SetFileName(path.Join(ServerSetting.Log.FilePath, ServerSetting.Log.FileName))
 			log.SetLogLevel(ServerSetting.Log.Level)
 		default:
-			log.Init(true)
+			log.Init(nil)
 			log.SetLogLevel(ServerSetting.Log.Level)
 		}
 	})
 	Vip.AllSettings()
 	ServerSetting = GetConfig(Vip)
-	log.Init(true)
+	if ServerSetting.Log.Mode == "file" {
+		log.Init(&log.Config{
+			LumberjackCfg: &lumberjack.Logger{
+				Filename:  path.Join(ServerSetting.Log.FilePath, ServerSetting.Log.FileName),
+				LocalTime: true,
+				Compress:  false,
+			},
+			Stdout: false,
+		})
+	} else {
+		log.Init(nil)
+	}
 	log.SetLogLevel(ServerSetting.Log.Level)
-	log.SetFileName(path.Join(ServerSetting.Log.FilePath, ServerSetting.Log.FileName))
 }
 
 // 解析配置文件，反序列化

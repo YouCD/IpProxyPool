@@ -3,15 +3,22 @@ package github
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"github.com/youcd/toolkit/log"
+	"errors"
+	"io"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/youcd/toolkit/log"
 )
 
 func fetch(proxyWeb *ProxyWeb) []*database.IP {
+	if proxyWeb == nil {
+		return nil
+	}
+
 	var count int
 	defer func() {
 		if r := recover(); r != nil {
@@ -22,6 +29,9 @@ func fetch(proxyWeb *ProxyWeb) []*database.IP {
 Retry:
 	document, err := fetcher.Fetch(proxyWeb.GetFullURL())
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
 		proxyWeb.ChangeProxy()
 		count++
 		if count < 3 {

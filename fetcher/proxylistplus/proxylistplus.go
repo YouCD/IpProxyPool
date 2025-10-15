@@ -4,9 +4,10 @@ import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
 	"fmt"
+	"time"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/youcd/toolkit/log"
-	"time"
 
 	"strconv"
 	"strings"

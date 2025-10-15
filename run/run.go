@@ -9,9 +9,10 @@ import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
 	"fmt"
+	"sync"
+
 	"github.com/robfig/cron/v3"
 	"github.com/youcd/toolkit/log"
-	"sync"
 )
 
 func Task() {

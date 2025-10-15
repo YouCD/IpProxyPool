@@ -2,12 +2,13 @@ package github
 
 import (
 	"fmt"
-	"github.com/youcd/toolkit/log"
 	"testing"
+
+	"github.com/youcd/toolkit/log"
 )
 
 func init() {
-	log.Init(true)
+	log.Init(nil)
 }
 func TestFreeProxyList(t *testing.T) {
 	for _, ip := range FreeProxyList() {

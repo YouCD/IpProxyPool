@@ -7,15 +7,13 @@ import (
 func OpenProxyList() []*database.IP {
 	list := make([]*database.IP, 0)
 	name := "OpenProxyList"
-
+	// https
+	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/https.txt"))...)
 	// http
-	http := fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/http.txt"))
-	list = append(list, http...)
+	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/http.txt"))...)
 	// socks5
-	socks5 := fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/socks5.txt"))
-	list = append(list, socks5...)
+	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/socks5.txt"))...)
 	//	 socks4
-	socks4 := fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/socks4.txt"))
-	list = append(list, socks4...)
+	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/socks4.txt"))...)
 	return list
 }

@@ -19,7 +19,7 @@ func NewProxyWeb(name string, url string) *ProxyWeb {
 }
 
 func (p *ProxyWeb) RandomProxy() {
-	if strings.ContainsAny(p.URL, "raw.githubusercontent.com") {
+	if strings.Contains(p.URL, "raw.githubusercontent.com") {
 		userAgentCount := len(config.ServerSetting.GithubProxy)
 		randomNum := util.RandInt(0, userAgentCount)
 		proxyURL := config.ServerSetting.GithubProxy[randomNum]

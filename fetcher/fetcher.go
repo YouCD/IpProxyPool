@@ -4,15 +4,17 @@ import (
 	"IpProxyPool/util"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/youcd/toolkit/log"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/net/publicsuffix"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/youcd/toolkit/log"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/net/publicsuffix"
 )
 
 func Fetch(url string) (*goquery.Document, error) {
@@ -68,6 +70,9 @@ Retry:
 
 	newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
 	if charsetErr != nil {
+		if errors.Is(charsetErr, io.EOF) {
+			return nil, charsetErr
+		}
 		log.Errorf("charset convert failed: %v", charsetErr)
 		return nil, fmt.Errorf("charset convert failed: %w", charsetErr)
 	}

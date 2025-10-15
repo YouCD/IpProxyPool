@@ -9,17 +9,13 @@ func Anonym0usWork1221() []*database.IP {
 	name := "Anonym0usWork1221"
 
 	// http
-	http := fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/http_proxies.txt"))
-	list = append(list, http...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/http_proxies.txt"))...)
 
 	// https
-	https := fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/https_proxies.txt"))
-	list = append(list, https...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/https_proxies.txt"))...)
 	// socks4
-	socks4 := fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/socks4_proxies.txt"))
-	list = append(list, socks4...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/socks4_proxies.txt"))...)
 	// socks5
-	socks5 := fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/socks5_proxies.txt"))
-	list = append(list, socks5...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/socks5_proxies.txt"))...)
 	return list
 }

@@ -8,14 +8,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/youcd/toolkit/log"
 	"net/http"
 	"time"
+
+	"github.com/youcd/toolkit/log"
 )
 
 // Run for request
 func Run(setting *config.System) {
 	mux := http.NewServeMux()
+	// 手动注册 pprof 处理函数到您的 mux
+	//mux.HandleFunc("/debug/pprof/", pprof.Index)
+	//mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	//mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	//mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	//mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
 	mux.HandleFunc("/", IndexHandler)
 	mux.HandleFunc("/all", ProxyAllHandler)
 	mux.HandleFunc("/http", ProxyHTTPHandler)

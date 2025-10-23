@@ -7,8 +7,9 @@ import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/run"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 const name = "IpProxyPool"

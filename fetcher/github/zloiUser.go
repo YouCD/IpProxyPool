@@ -3,24 +3,22 @@ package github
 import (
 	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"github.com/youcd/toolkit/log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/youcd/toolkit/log"
 )
 
 func ZloiUser() []*database.IP {
 	list := make([]*database.IP, 0)
 
 	name := "zloiUser"
-	HTTPSUrl := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/https.txt")
-	list = append(list, hideIPMeFetch(HTTPSUrl)...)
+	list = append(list, hideIPMeFetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/https.txt"))...)
 
-	socks4Url := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks4.txt")
-	list = append(list, hideIPMeFetch(socks4Url)...)
+	list = append(list, hideIPMeFetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks4.txt"))...)
 
-	socks5 := NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks5.txt")
-	list = append(list, hideIPMeFetch(socks5)...)
+	list = append(list, hideIPMeFetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks5.txt"))...)
 	return list
 }
 func hideIPMeFetch(urlStr *ProxyWeb) []*database.IP {

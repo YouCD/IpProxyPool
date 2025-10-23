@@ -8,16 +8,12 @@ func Vakhov() []*database.IP {
 	list := make([]*database.IP, 0)
 	name := "Vakhov"
 
-	httpsURL := NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/https.txt")
-	list = append(list, fetch(httpsURL)...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/https.txt"))...)
 
-	socks5Url := NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt")
-	list = append(list, fetch(socks5Url)...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt"))...)
 
-	socks4Url := NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks4.txt")
-	list = append(list, fetch(socks4Url)...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks4.txt"))...)
 
-	httpURL := NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt")
-	list = append(list, fetch(httpURL)...)
+	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt"))...)
 	return list
 }

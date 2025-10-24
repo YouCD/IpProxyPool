@@ -1,9 +1,12 @@
 package geonode
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestGeonode(t *testing.T) {
-	Geonode()
+	for _, ip := range Geonode() {
+		fmt.Printf("%#v\n", ip)
+	}
 }

@@ -1,12 +1,15 @@
 package github
 
 import (
-	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
-	"github.com/youcd/toolkit/log"
+	"IpProxyPool/util"
+	"bufio"
+	"bytes"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/youcd/toolkit/log"
 )
 
 func FreeProxyList() []*database.IP {
@@ -22,30 +25,41 @@ func FreeProxyList() []*database.IP {
 	list = append(list, freeProxyListFetch(httpURL, "http://")...)
 	return list
 }
-
 func freeProxyListFetch(urlStr *ProxyWeb, replaceStr string) []*database.IP {
-	list := make([]*database.IP, 0)
-	document, err := fetcher.Fetch(urlStr.GetFullURL())
+	list := make([]*database.IP, 0, 256)
+
+	doc, _, err := util.Fetch(urlStr.GetFullURL())
 	if err != nil {
-		log.Errorf("%s fetch failed,err: %s", urlStr.Name, err)
+		log.Errorf("%s fetch error: %v", urlStr.Name, err)
 		return list
 	}
 
-	for _, s := range strings.Split(document.Text(), "\n") {
-		s := strings.ReplaceAll(s, replaceStr, "")
-		split := strings.Split(s, ":")
-		if len(split) < 2 {
+	// 流式扫描，避免 document.Text() 一次性分配大字符串
+	scanner := bufio.NewScanner(bytes.NewReader([]byte(doc.Text())))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
 			continue
 		}
-		ip := new(database.IP)
-		ip.ProxyHost = split[0]
-		ip.ProxyPort, _ = strconv.Atoi(split[1])
-		ip.ProxyLocation = "free-proxy-list"
-		ip.ProxySpeed = 100
-		ip.ProxySource = "https://github.com/proxifly/free-proxy-list"
-		ip.CreateTime = time.Now()
-		ip.UpdateTime = time.Now()
-		list = append(list, ip)
+		line = strings.ReplaceAll(line, replaceStr, "")
+		parts := strings.Split(line, ":")
+		if len(parts) < 2 {
+			continue
+		}
+
+		port, _ := strconv.Atoi(parts[1])
+		list = append(list, &database.IP{
+			ProxyHost:     parts[0],
+			ProxyPort:     port,
+			ProxyLocation: "free-proxy-list",
+			ProxySpeed:    100,
+			ProxySource:   "https://github.com/proxifly/free-proxy-list",
+			CreateTime:    time.Now(),
+			UpdateTime:    time.Now(),
+		})
+	}
+	if err := scanner.Err(); err != nil {
+		log.Errorf("free-proxy-list scanner error: %v", err)
 	}
 	return list
 }

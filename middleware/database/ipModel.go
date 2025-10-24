@@ -1,9 +1,10 @@
 package database
 
 import (
-	"github.com/youcd/toolkit/log"
 	"strings"
 	"time"
+
+	"github.com/youcd/toolkit/log"
 )
 
 // IP struct
@@ -85,20 +86,59 @@ func GetIPByProxyType(proxyType string) ([]IP, error) {
 	return list, nil
 }
 
-// UpdateIP 更新数据
+// UpdateIP 更新数据（带防护和重试）
 func UpdateIP(ip *IP) {
-	ipMap := make(map[string]interface{}, 0)
-	ipMap["proxy_speed"] = ip.ProxySpeed
-	ipMap["proxy_type"] = strings.ToLower(ip.ProxyType)
-	ipMap["update_time"] = time.Now()
-	if ip.ProxyId != 0 {
-		tx := GetDB().Begin()
-		if err := tx.Model(ip).Where("proxy_id = ?", ip.ProxyId).Updates(ipMap).Error; err != nil {
-			log.Errorf("update ip: %s, error msg: %v", ip.ProxyHost, err)
-			tx.Rollback()
-		} else {
-			tx.Commit()
+	if ip.ProxyId == 0 {
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warnf("UpdateIP panic recovered for %s: %v", ip.ProxyHost, r)
 		}
+	}()
+
+	ipMap := map[string]interface{}{
+		"proxy_speed": ip.ProxySpeed,
+		"proxy_type":  strings.ToLower(ip.ProxyType),
+		"update_time": time.Now(),
+	}
+
+	var err error
+	for i := 0; i < 3; i++ { // 最多重试3次
+		db := GetDB()
+		if db == nil {
+			log.Errorf("UpdateIP: GetDB() returned nil")
+			time.Sleep(time.Second)
+			continue
+		}
+
+		tx := db.Begin()
+		if tx.Error != nil {
+			log.Warnf("UpdateIP: begin tx failed (%d/3): %v", i+1, tx.Error)
+			time.Sleep(time.Second * time.Duration(i+1))
+			continue
+		}
+
+		err = tx.Model(ip).Where("proxy_id = ?", ip.ProxyId).Updates(ipMap).Error
+		if err != nil {
+			tx.Rollback()
+			log.Warnf("UpdateIP: update failed (%d/3): %v", i+1, err)
+			time.Sleep(time.Second * time.Duration(i+1))
+			continue
+		}
+
+		if commitErr := tx.Commit().Error; commitErr != nil {
+			log.Warnf("UpdateIP: commit failed (%d/3): %v", i+1, commitErr)
+			time.Sleep(time.Second * time.Duration(i+1))
+			continue
+		}
+
+		return // 成功则退出
+	}
+
+	if err != nil {
+		log.Errorf("UpdateIP: all retries failed for %s: %v", ip.ProxyHost, err)
 	}
 }
 

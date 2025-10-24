@@ -8,15 +8,17 @@ system:
 
 # mysql
 database:
-  host: 127.0.0.1
-#  host: 192.168.1.188
+#  host: 127.0.0.1
+  host: 192.168.1.188
   port: 3306
   dbName: IpProxyPool
   username: root
   password: 'P@ssw0rd'
 githubProxy:
-  - https://git.886.be
   - https://gh-proxy.com
+  - https://ghfast.top
+  - https://wget.la/
+
 
 # logger configuration
 log:

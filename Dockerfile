@@ -1,4 +1,4 @@
-FROM golang:1.24.4-alpine AS builder
+FROM golang:1.24.5-alpine AS builder
 WORKDIR /builder
 # 设置环境变量, 指定编码
 ENV CGO_ENABLED=0 \

@@ -1,44 +1,46 @@
 package proxylistplus
 
 import (
-	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
+	"IpProxyPool/util"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/youcd/toolkit/log"
-
-	"strconv"
-	"strings"
 )
 
 func ProxyListPlus() []*database.IP {
-	list := make([]*database.IP, 0)
+	list := make([]*database.IP, 0, 512) // 预分配
 	indexURL := "https://list.proxylistplus.com"
 	for i := 1; i <= 6; i++ {
 		url := fmt.Sprintf("%s/Fresh-HTTP-Proxy-List-%d", indexURL, i)
-		document, err := fetcher.Fetch(url)
+		doc, _, err := util.Fetch(url)
 		if err != nil {
-			log.Errorf("[proxylistplus] document failed,err:%s", err)
-			return list
+			log.Errorf("[proxylistplus] fetch failed: %v", err)
+			continue // 不要 return，跳过即可
 		}
-		document.Find("table.bg > tbody").Each(func(_ int, selection *goquery.Selection) {
-			selection.Find("tr").Each(func(_ int, selection *goquery.Selection) {
-				proxyIP := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())
-				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(3)").Text())
-				proxyLocation := strings.TrimSpace(selection.Find("td:nth-child(5)").Text())
 
-				ip := new(database.IP)
-				ip.ProxyHost = proxyIP
-				ip.ProxyPort, _ = strconv.Atoi(proxyPort)
-				ip.ProxyType = "http"
-				ip.ProxyLocation = proxyLocation
-				ip.ProxySpeed = 100
-				ip.ProxySource = "https://list.proxylistplus.com"
-				ip.CreateTime = time.Now()
-				ip.UpdateTime = time.Now()
-				list = append(list, ip)
+		doc.Find("table.bg tbody tr").Each(func(_ int, row *goquery.Selection) {
+			// 只取 3 个 td，不整行 Text()
+			ip := util.FastText(row.Find("td:nth-child(2)"))
+			port := util.FastText(row.Find("td:nth-child(3)"))
+			loc := util.FastText(row.Find("td:nth-child(5)"))
+
+			if ip == "" || port == "" {
+				return // 跳过空行
+			}
+			p, _ := strconv.Atoi(port)
+			list = append(list, &database.IP{
+				ProxyHost:     ip,
+				ProxyPort:     p,
+				ProxyType:     "http",
+				ProxyLocation: loc,
+				ProxySpeed:    100,
+				ProxySource:   indexURL,
+				CreateTime:    time.Now(),
+				UpdateTime:    time.Now(),
 			})
 		})
 	}

@@ -1,7 +1,7 @@
-package fetcher
+package util
 
 import (
-	"IpProxyPool/util"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -17,26 +18,40 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-func Fetch(url string) (*goquery.Document, error) {
+var (
+	once   sync.Once
+	client *http.Client
+)
+
+func GetClient() *http.Client {
+	once.Do(func() {
+		// &cookiejar.Options{PublicSuffixList: publicsuffix.List}，这是为了可以根据域名安全地设置cookies
+		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		if err != nil {
+			panic(err)
+		}
+		client = &http.Client{
+			Jar:     jar,
+			Timeout: 100 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     90 * time.Second,
+			},
+		}
+	})
+	return client
+}
+func Fetch(url string) (*goquery.Document, []byte, error) {
 	log.Debugf("Fetch url: %s", url)
 	var count int
 Retry:
-	// &cookiejar.Options{PublicSuffixList: publicsuffix.List}，这是为了可以根据域名安全地设置cookies
-	cookieJar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		panic(err)
-	}
 	//nolint:gosec
-	client := &http.Client{
-		Jar:     cookieJar,
-		Timeout: 100 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := GetClient()
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	req.Header.Set("Proxy-Switch-Ip", "yes")
-	req.Header.Set("User-Agent", util.RandomUserAgent())
+	req.Header.Set("User-Agent", RandomUserAgent())
 	req.Header.Set("Access-Control-Allow-Origin", "*")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.")
 	// req.Header.Set("Accept-Encoding", "gzip, deflate, br")
@@ -54,7 +69,7 @@ Retry:
 			time.Sleep(time.Second * 1)
 			goto Retry
 		}
-		return nil, fmt.Errorf("http get error: %w", err)
+		return nil, nil, fmt.Errorf("http get error: %w", err)
 	}
 	defer func() {
 		if err := recover(); err != nil {
@@ -71,16 +86,21 @@ Retry:
 	newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
 	if charsetErr != nil {
 		if errors.Is(charsetErr, io.EOF) {
-			return nil, charsetErr
+			return nil, nil, charsetErr
 		}
 		log.Errorf("charset convert failed: %v", charsetErr)
-		return nil, fmt.Errorf("charset convert failed: %w", charsetErr)
+		return nil, nil, fmt.Errorf("charset convert failed: %w", charsetErr)
 	}
-	doc, docErr = goquery.NewDocumentFromReader(newResp)
+	var bufer bytes.Buffer
+	_, _ = io.Copy(&bufer, newResp)
+	// 先获取字节数据
+	bt := bufer.Bytes()
+
+	doc, docErr = goquery.NewDocumentFromReader(bytes.NewReader(bt))
 	if docErr != nil {
 		log.Errorf("goquery http response body reader error: %v", docErr)
-		return nil, fmt.Errorf("goquery http response body reader error: %w", docErr)
+		return nil, nil, fmt.Errorf("goquery http response body reader error: %w", docErr)
 	}
 
-	return doc, nil
+	return doc, bt, nil
 }

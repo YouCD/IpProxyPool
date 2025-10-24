@@ -4,16 +4,17 @@ import (
 	"IpProxyPool/middleware/config"
 	"database/sql"
 	"fmt"
-	"github.com/youcd/toolkit/log"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	sdkLog "log"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/youcd/toolkit/log"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var dbPingInterval = 90 * time.Second
@@ -82,10 +83,12 @@ func InitDB(setting *config.Database) *gorm.DB {
 			os.Exit(-1)
 		}
 		// 设置连接池
+		// 设置连接时间
+		sqlDb.SetConnMaxLifetime(5 * time.Minute)
 		// 用于设置连接池中空闲连接的最大数量。
 		sqlDb.SetMaxIdleConns(10)
 		// 设置打开数据库连接的最大数量
-		sqlDb.SetMaxOpenConns(100)
+		sqlDb.SetMaxOpenConns(50)
 
 		go KeepAlivedDb(sqlDb)
 

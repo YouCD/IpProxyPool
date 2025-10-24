@@ -1,11 +1,13 @@
 package geonode
 
 import (
-	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
 	"encoding/json"
-	"github.com/youcd/toolkit/log"
+	"io"
+	"net/http"
 	"time"
+
+	"github.com/youcd/toolkit/log"
 )
 
 //nolint:tagliatelle,revive
@@ -38,28 +40,42 @@ type resp struct {
 }
 
 func Geonode() []*database.IP {
-	list := make([]*database.IP, 0)
-	document, err := fetcher.Fetch("https://proxylist.geonode.com/api/proxy-list?protocols=socks5&limit=500&page=1&sort_by=lastChecked&sort_type=desc")
+	const url = "https://proxylist.geonode.com/api/proxy-list?protocols=socks5&limit=500&page=1&sort_by=lastChecked&sort_type=desc"
+
+	// 1. 原生 http 拿字节流，不走进 goquery
+	respA, err := http.Get(url)
 	if err != nil {
-		log.Errorf("document geonode error:%s", err)
-		return list
+		log.Errorf("geonode http get error: %v", err)
+		return nil
 	}
+	defer respA.Body.Close()
+
+	// 2. 限制最大 2 MB，防止被恶意超大 JSON 打爆
+	body, err := io.ReadAll(io.LimitReader(respA.Body, 2<<20))
+	if err != nil {
+		log.Errorf("geonode read body error: %v", err)
+		return nil
+	}
+
+	// 3. 直接 JSON 解码
 	var respData resp
-	if err := json.Unmarshal([]byte(document.Text()), &respData); err != nil {
-		log.Error(err)
-		return list
+	if err := json.Unmarshal(body, &respData); err != nil {
+		log.Errorf("geonode json error: %v", err)
+		return nil
 	}
-	for _, datum := range respData.Data {
-		ip := &database.IP{
-			ProxyHost:     datum.Ip,
-			ProxyPort:     datum.Port,
-			ProxyType:     datum.Protocols[0],
-			ProxyLocation: datum.City,
+
+	// 4. 转模型
+	list := make([]*database.IP, 0, len(respData.Data))
+	for _, d := range respData.Data {
+		list = append(list, &database.IP{
+			ProxyHost:     d.Ip,
+			ProxyPort:     d.Port,
+			ProxyType:     d.Protocols[0],
+			ProxyLocation: d.City,
 			ProxySource:   "https://proxylist.geonode.com",
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),
-		}
-		list = append(list, ip)
+		})
 	}
 	return list
 }

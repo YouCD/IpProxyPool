@@ -1,56 +1,64 @@
 package ip89
 
 import (
-	"IpProxyPool/fetcher"
 	"IpProxyPool/middleware/database"
+	"IpProxyPool/util"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/youcd/toolkit/log"
-	"strconv"
-	"strings"
-	"time"
 )
 
-//nolint:revive
 func Ip89() []*database.IP {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
 		}
 	}()
-	list := make([]*database.IP, 0)
 
-	indexUrl := "https://www.89ip.cn/"
-	document, err := fetcher.Fetch(indexUrl)
+	list := make([]*database.IP, 0, 512)
+	indexURL := "https://www.89ip.cn"
+
+	doc, _, err := util.Fetch(indexURL)
 	if err != nil {
-		log.Errorf("%s fetch error:%s", indexUrl, err)
+		log.Errorf("89ip fetch index error: %v", err)
 		return list
 	}
-	pageNum := document.Find("#layui-laypage-1 > a:nth-child(7)").Text()
-	num, _ := strconv.Atoi(pageNum)
-	for i := 1; i <= num; i++ {
-		url := fmt.Sprintf("%s/index_%d.html", indexUrl, i)
-		documentA, err := fetcher.Fetch(url)
+
+	pageStr := util.FastText(doc.Find("#layui-laypage-1 > a:nth-child(7)"))
+	pageNum, _ := strconv.Atoi(pageStr)
+	if pageNum > 50 { // 站点实际 50 页左右，防止被反爬
+		pageNum = 50
+	}
+
+	for i := 1; i <= pageNum; i++ {
+		url := fmt.Sprintf("%s/index_%d.html", indexURL, i)
+		docPage, _, err := util.Fetch(url)
 		if err != nil {
-			log.Errorf("%s document error:%s", indexUrl, err)
+			log.Errorf("89ip fetch %s error: %v", url, err)
 			continue
 		}
-		documentA.Find("table > tbody").Each(func(i int, selection *goquery.Selection) {
-			selection.Find("tr").Each(func(i int, selection *goquery.Selection) {
-				proxyIp := strings.TrimSpace(selection.Find("td:nth-child(1)").Text())
-				proxyPort := strings.TrimSpace(selection.Find("td:nth-child(2)").Text())
-				proxyLocation := strings.TrimSpace(selection.Find("td:nth-child(3)").Text())
 
-				ip := new(database.IP)
-				ip.ProxyHost = proxyIp
-				ip.ProxyPort, _ = strconv.Atoi(proxyPort)
-				ip.ProxyType = "http"
-				ip.ProxyLocation = proxyLocation
-				ip.ProxySpeed = 100
-				ip.ProxySource = "https://www.89ip.cn"
-				ip.CreateTime = time.Now()
-				ip.UpdateTime = time.Now()
-				list = append(list, ip)
+		docPage.Find("table tbody tr").Each(func(_ int, row *goquery.Selection) {
+			ip := util.FastText(row.Find("td:nth-child(1)"))
+			port := util.FastText(row.Find("td:nth-child(2)"))
+			loc := util.FastText(row.Find("td:nth-child(3)"))
+
+			if ip == "" || port == "" {
+				return // 空行跳过
+			}
+			p, _ := strconv.Atoi(port)
+			list = append(list, &database.IP{
+				ProxyHost:     ip,
+				ProxyPort:     p,
+				ProxyType:     "http",
+				ProxyLocation: loc,
+				ProxySpeed:    100,
+				ProxySource:   indexURL,
+				CreateTime:    time.Now(),
+				UpdateTime:    time.Now(),
 			})
 		})
 	}

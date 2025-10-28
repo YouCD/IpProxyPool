@@ -70,7 +70,8 @@ func freeProxyListFetch(ctx context.Context, urlStr *ProxyWeb) []*database.IP {
 			UpdateTime:    time.Now(),
 		})
 	}
-	if err := scanner.Err(); err != nil {
+	err = scanner.Err()
+	if err != nil {
 		log.Errorf("free-proxy-list scanner error: %v", err)
 	}
 	return list

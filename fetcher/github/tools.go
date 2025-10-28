@@ -18,6 +18,7 @@ import (
 	"github.com/youcd/toolkit/log"
 )
 
+//nolint:gocognit
 func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 	if proxyWeb == nil {
 		return nil
@@ -58,8 +59,8 @@ func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 	wg.Add(workers)
 
 	// --- 3. 启动 worker ---
-	for i := 0; i < workers; i++ {
-		go func(workerID int) {
+	for range workers {
+		go func() {
 			defer wg.Done()
 
 			d := net.Dialer{
@@ -108,7 +109,7 @@ func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 					return
 				}
 			}
-		}(i)
+		}()
 	}
 
 	// --- 4. 边读边派发任务 ---
@@ -144,7 +145,7 @@ func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 		close(ipCh)
 	}()
 
-	var list []*database.IP
+	list := make([]*database.IP, 0, len(ipCh))
 	for ip := range ipCh {
 		list = append(list, ip)
 	}

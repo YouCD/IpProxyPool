@@ -28,13 +28,13 @@ var (
 )
 
 // CheckProxy .
-func CheckProxy(ip *database.IP) string {
+func CheckProxy(ctx context.Context, ip *database.IP) string {
 	now := time.Now()
 	if ip == nil {
 		return "CheckProxy empty ip"
 	}
 	var flag bool
-	if item, ok := CheckIP(ip); ok {
+	if item, ok := CheckIP(ctx, ip); ok {
 		database.SaveIP(item)
 		flag = true
 	}
@@ -51,17 +51,16 @@ func CheckProxy(ip *database.IP) string {
 //	@param ip
 //	@return *database.IP
 //	@return bool
-func CheckIP(ip *database.IP) (*database.IP, bool) {
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 60*time.Second)
+func CheckIP(ctx context.Context, ip *database.IP) (*database.IP, bool) {
+	ctxA, cancelFunc := context.WithTimeout(ctx, 60*time.Second)
 	defer func() {
-		//nolint:gosimple
 		select {
-		case <-ctx.Done():
+		case <-ctxA.Done():
 			time.Sleep(5 * time.Second)
 			cancelFunc()
 		}
 	}()
-	d := checkIP(ctx, ip)
+	d := checkIP(ctxA, ip)
 	if d == nil {
 		return ip, false
 	}
@@ -71,9 +70,13 @@ func checkIP(ctx context.Context, ip *database.IP) *database.IP {
 	if ip == nil {
 		return nil
 	}
-	if _, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort), 3*time.Second); err != nil {
+	// 修改后
+	dialer := &net.Dialer{Timeout: 3 * time.Second}
+	_, err := dialer.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort))
+	if err != nil {
 		return nil
 	}
+
 	resultChan := make(chan *database.IP, 1)
 	var wg sync.WaitGroup
 	ip.ProxyType = strings.ToLower(ip.ProxyType)
@@ -182,7 +185,7 @@ func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 }
 
 // CheckProxyDB to check the ip in DB
-func CheckProxyDB() {
+func CheckProxyDB(ctx context.Context) {
 	start := time.Now()
 	beforeRecord := database.CountIP()
 	ips := database.GetAllIP()
@@ -191,7 +194,7 @@ func CheckProxyDB() {
 		wg.Add(1)
 		go func(ip *database.IP) {
 			defer wg.Done()
-			newIP, ok := CheckIP(ip)
+			newIP, ok := CheckIP(ctx, ip)
 			if !ok {
 				log.Warnf("CheckProxyDB proxy: %s, error: %s", ip.ProxyHost, ErrNotAvailable)
 				database.DeleteIP(ip)

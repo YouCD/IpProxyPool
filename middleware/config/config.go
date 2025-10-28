@@ -105,11 +105,12 @@ func InitConfig() {
 	log.SetLogLevel(ServerSetting.Log.Level)
 }
 
-// 解析配置文件，反序列化
+// GetConfig 解析配置文件，反序列化
 func GetConfig(vip *viper.Viper) *YamlSetting {
 	setting := new(YamlSetting)
 	// 解析配置文件，反序列化
-	if err := vip.Unmarshal(setting); err != nil {
+	err := vip.Unmarshal(setting)
+	if err != nil {
 		log.Errorf("Unmarshal yaml faild: %s", err)
 		os.Exit(-1)
 	}

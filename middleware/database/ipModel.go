@@ -37,16 +37,19 @@ func SaveIP(ip *IP) {
 		UpdateIP(ip)
 		return
 	}
-	if err := db.Model(&IP{}).Create(ip).Error; err != nil {
-		log.Errorf("save ip: %s, error msg: %v", ip.ProxyHost, err)
+	// 推荐：分离错误处理
+	result := db.Model(&IP{}).Create(ip)
+	if result.Error != nil {
+		log.Errorf("save ip: %s, error msg: %v", ip.ProxyHost, result.Error)
 	}
 }
 
 // GetIPByProxyHost 根据 proxyHost 获取一条数据
 func GetIPByProxyHost(host string) *IP {
 	ipModel := &IP{}
-	if err := db.Model(&IP{}).Where("proxy_host = ?", host).Scan(ipModel).Error; err != nil {
-		log.Errorf("get ip: %s, error msg: %s", host, err)
+	result := db.Model(&IP{}).Where("proxy_host = ?", host).Scan(ipModel)
+	if result.Error != nil {
+		log.Errorf("get ip: %s, error msg: %s", host, result.Error)
 		return nil
 	}
 	return ipModel
@@ -105,7 +108,7 @@ func UpdateIP(ip *IP) {
 	}
 
 	var err error
-	for i := 0; i < 3; i++ { // 最多重试3次
+	for i := range 3 { // 最多重试3次
 		db := GetDB()
 		if db == nil {
 			log.Errorf("UpdateIP: GetDB() returned nil")
@@ -128,8 +131,9 @@ func UpdateIP(ip *IP) {
 			continue
 		}
 
-		if commitErr := tx.Commit().Error; commitErr != nil {
-			log.Warnf("UpdateIP: commit failed (%d/3): %v", i+1, commitErr)
+		commit := tx.Commit()
+		if commit.Error != nil {
+			log.Warnf("UpdateIP: commit failed (%d/3): %v", i+1, commit.Error)
 			time.Sleep(time.Second * time.Duration(i+1))
 			continue
 		}
@@ -156,8 +160,9 @@ func DeleteIP(ip *IP) {
 func DeleteByIP(ip string) {
 	tx := GetDB().Begin()
 	ipModel := IP{}
-	if err := tx.Model(&IP{}).Where("proxy_host = ?", ip).Scan(&ipModel).Delete(&ipModel).Error; err != nil {
-		log.Errorf("delete ip: %s, error msg: %v", ipModel.ProxyHost, err)
+	result := tx.Model(&IP{}).Where("proxy_host = ?", ip).Scan(&ipModel).Delete(&ipModel)
+	if result.Error != nil {
+		log.Errorf("delete ip: %s, error msg: %v", ipModel.ProxyHost, result.Error)
 		tx.Rollback()
 	}
 	tx.Commit()
@@ -168,8 +173,9 @@ func Count() map[string]int64 {
 	proxyTypes := []string{"http", "https", "tcp", "socks5", "socks4", "tcp"}
 	for _, proxyType := range proxyTypes {
 		var count int64
-		if err := GetDB().Model(&IP{}).Where("proxy_type = ?", proxyType).Count(&count).Error; err != nil {
-			log.Errorf("count proxy_type: %s, error %s", proxyType, err)
+		res := GetDB().Model(&IP{}).Where("proxy_type = ?", proxyType).Count(&count)
+		if res.Error != nil {
+			log.Errorf("count proxy_type: %s, error %s", proxyType, res.Error)
 		}
 		countMap[proxyType] = count
 	}

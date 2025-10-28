@@ -34,6 +34,7 @@ func GetClient() *http.Client {
 			Jar:     jar,
 			Timeout: 100 * time.Second,
 			Transport: &http.Transport{
+				//nolint:gosec
 				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 				MaxIdleConns:        100,
 				MaxIdleConnsPerHost: 10,
@@ -47,7 +48,6 @@ func Fetch(ctx context.Context, url string) (*goquery.Document, []byte, error) {
 	log.Debugf("Fetch url: %s", url)
 	var count int
 Retry:
-	//nolint:gosec
 	client := GetClient()
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("Proxy-Switch-Ip", "yes")
@@ -86,7 +86,7 @@ Retry:
 	newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
 	if charsetErr != nil {
 		if errors.Is(charsetErr, io.EOF) {
-			return nil, nil, charsetErr
+			return nil, nil, fmt.Errorf("charset error: %w", charsetErr)
 		}
 		log.Errorf("charset convert failed: %v", charsetErr)
 		return nil, nil, fmt.Errorf("charset convert failed: %w", charsetErr)

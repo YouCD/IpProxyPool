@@ -7,23 +7,20 @@ import (
 	"IpProxyPool/util"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"net/http/pprof"
 	"time"
 
 	"github.com/youcd/toolkit/log"
+	"github.com/youcd/toolkit/pprof"
 )
 
 // Run for request
 func Run(ctx context.Context, setting *config.System) {
 	mux := http.NewServeMux()
 	// 手动注册 pprof 处理函数到您的 mux
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	pprof.RegisterHandlers(mux.HandleFunc)
 
 	mux.HandleFunc("/", IndexHandler)
 	mux.HandleFunc("/all", ProxyAllHandler)
@@ -48,7 +45,7 @@ func Run(ctx context.Context, setting *config.System) {
 	serverErrChan := make(chan error, 1)
 	go func() {
 		err := server.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErrChan <- err
 		}
 		close(serverErrChan)
@@ -66,10 +63,11 @@ func Run(ctx context.Context, setting *config.System) {
 
 	// 执行服务器关闭
 	server.SetKeepAlivesEnabled(false)
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	if errs := server.Shutdown(shutdownCtx); errs != nil {
+	errs := server.Shutdown(shutdownCtx)
+	if errs != nil {
 		log.Info("Server Shutdown:", errs)
 		fmt.Println("Server Shutdown:", errs)
 	}

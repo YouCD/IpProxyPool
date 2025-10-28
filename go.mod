@@ -10,13 +10,13 @@ require (
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
-	github.com/youcd/toolkit v0.0.0-20251017020339-6795b36e3304
+	github.com/youcd/toolkit v0.0.0-20251028085355-778a4a06fe14
 	golang.org/x/net v0.46.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.0
 )
 
-//replace github.com/youcd/toolkit v0.0.0-20240607085717-b8097334d228 => /home/ycd/self_data/source_code/toolkit
+//replace github.com/youcd/toolkit => /home/ycd/self_data/source_code/toolkit
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect

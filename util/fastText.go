@@ -12,12 +12,13 @@ var textBufPool = sync.Pool{
 }
 
 func FastText(sel *goquery.Selection) string {
+	//nolint:forcetypeassert
 	buf := textBufPool.Get().(*strings.Builder)
 	buf.Reset()
 	defer textBufPool.Put(buf)
 
 	// 手动遍历 TextNode，避免 goquery.Text() 内部再 new Builder
-	sel.Contents().Each(func(i int, s *goquery.Selection) {
+	sel.Contents().Each(func(_ int, s *goquery.Selection) {
 		if goquery.NodeName(s) == "#text" {
 			buf.WriteString(strings.TrimSpace(s.Text()))
 		}

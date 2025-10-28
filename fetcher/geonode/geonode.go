@@ -2,6 +2,7 @@ package geonode
 
 import (
 	"IpProxyPool/middleware/database"
+	"IpProxyPool/util"
 	"context"
 	"encoding/json"
 	"io"
@@ -44,7 +45,8 @@ func Geonode(ctx context.Context) []*database.IP {
 	const url = "https://proxylist.geonode.com/api/proxy-list?protocols=socks5&limit=500&page=1&sort_by=lastChecked&sort_type=desc"
 
 	// 1. 原生 http 拿字节流，不走进 goquery
-	respA, err := http.Get(url)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	respA, err := util.GetClient().Do(req)
 	if err != nil {
 		log.Errorf("geonode http get error: %v", err)
 		return nil
@@ -60,7 +62,8 @@ func Geonode(ctx context.Context) []*database.IP {
 
 	// 3. 直接 JSON 解码
 	var respData resp
-	if err := json.Unmarshal(body, &respData); err != nil {
+	err = json.Unmarshal(body, &respData)
+	if err != nil {
 		log.Errorf("geonode json error: %v", err)
 		return nil
 	}

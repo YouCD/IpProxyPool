@@ -6,7 +6,7 @@ import (
 )
 
 func TestIp89(t *testing.T) {
-	for _, ip := range Ip89() {
+	for _, ip := range IP89() {
 		fmt.Printf("%#v\n", ip)
 	}
 }

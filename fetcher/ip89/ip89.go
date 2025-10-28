@@ -12,7 +12,7 @@ import (
 	"github.com/youcd/toolkit/log"
 )
 
-func Ip89(ctx context.Context) []*database.IP {
+func IP89(ctx context.Context) []*database.IP {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)

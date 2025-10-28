@@ -23,7 +23,7 @@ func Task(ctx context.Context) {
 	go func() {
 		c := cron.New()
 		_, _ = c.AddFunc("*/30 * * * *", func() {
-			storage.CheckProxyDB()
+			storage.CheckProxyDB(ctx)
 		})
 		c.Start()
 	}()
@@ -34,12 +34,17 @@ func Task(ctx context.Context) {
 	for i := range numConsumers {
 		go func(consumerID int) {
 			for {
-				ip := <-ipChan
-				if ip == nil {
-					log.Warnf("Consumer %d received nil IP, skipping...", consumerID)
-					continue
+				select {
+				case <-ctx.Done():
+					log.Infof("Consumer %d stopping due to context cancellation", consumerID)
+					return
+				case ip := <-ipChan:
+					if ip == nil {
+						log.Warnf("Consumer %d received nil IP, skipping...", consumerID)
+						continue
+					}
+					log.Infow("CheckProxy", "consumerID", consumerID, "ipChan len", len(ipChan), "msg", storage.CheckProxy(ctx, ip))
 				}
-				log.Infow("CheckProxy", "consumerID", consumerID, "ipChan len", len(ipChan), "msg", storage.CheckProxy(ip))
 			}
 		}(i)
 	}
@@ -60,7 +65,7 @@ func run(ctx context.Context, ipChan chan<- *database.IP) {
 
 	type fetcher func(ctx context.Context) []*database.IP
 	siteFuncList := map[string]fetcher{
-		"89ip":              ip89.Ip89,
+		"89ip":              ip89.IP89,
 		"ip3366":            ip3366.Ip3366,
 		"proxylistplus":     proxylistplus.ProxyListPlus,
 		"TheSpeedX":         github.TheSpeedX,

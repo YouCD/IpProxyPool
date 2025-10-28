@@ -29,15 +29,16 @@ var rootCmd = &cobra.Command{
 		}
 		setting := config.ServerSetting
 
-		// 初始化数据库连接
-		database.InitDB(&setting.Database)
-
 		// 信号处理应该放在服务器启动之后
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer func() {
 			log.Info("shutting down server")
 			stop()
 		}()
+
+		// 初始化数据库连接
+		database.InitDB(ctx, &setting.Database)
+
 		// Start HTTP
 		go func(ctx context.Context) {
 			run.Task(ctx)
@@ -56,7 +57,8 @@ func init() {
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	err := rootCmd.Execute()
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}

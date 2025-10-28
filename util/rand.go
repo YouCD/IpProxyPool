@@ -1,3 +1,4 @@
+//nolint:revive
 package util
 
 import (
@@ -6,13 +7,13 @@ import (
 )
 
 // RandInt get the random number in [min, max]
-//
-//nolint:gosec,predeclared
-func RandInt(mini, max int) int {
-	if mini >= max || max == 0 {
-		return max
+func RandInt(miniValue, maxValue int) int {
+	if miniValue >= maxValue || maxValue == 0 {
+		return maxValue
 	}
+	//nolint:gosec
 	rand.New(rand.NewSource(time.Now().Local().UnixNano()))
-	num := rand.Intn(max-mini) + mini
+	//nolint:gosec
+	num := rand.Intn(maxValue-miniValue) + miniValue
 	return num
 }

@@ -2,6 +2,7 @@ package database
 
 import (
 	"IpProxyPool/middleware/config"
+	"context"
 	"database/sql"
 	"fmt"
 	sdkLog "log"
@@ -27,7 +28,7 @@ func GetDB() *gorm.DB {
 	return db
 }
 
-func InitDB(setting *config.Database) *gorm.DB {
+func InitDB(ctx context.Context, setting *config.Database) *gorm.DB {
 	var err error
 	once.Do(func() {
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=True&loc=Local", url.QueryEscape(setting.Username), setting.Password, setting.Host, setting.Port) // 连接数据库
@@ -90,7 +91,7 @@ func InitDB(setting *config.Database) *gorm.DB {
 		// 设置打开数据库连接的最大数量
 		sqlDb.SetMaxOpenConns(50)
 
-		go KeepAlivedDb(sqlDb)
+		go KeepAlivedDb(ctx, sqlDb)
 
 		err = db.AutoMigrate(&IP{})
 		if err != nil {
@@ -101,12 +102,12 @@ func InitDB(setting *config.Database) *gorm.DB {
 	return db
 }
 
-func KeepAlivedDb(engine *sql.DB) {
+func KeepAlivedDb(ctx context.Context, engine *sql.DB) {
 	t := time.Tick(dbPingInterval)
 	var err error
 	for {
 		<-t
-		err = engine.Ping()
+		err = engine.PingContext(ctx)
 		if err != nil {
 			log.Errorf("database ping error: %v\n", err.Error())
 		}

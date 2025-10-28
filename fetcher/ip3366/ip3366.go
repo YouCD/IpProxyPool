@@ -3,8 +3,10 @@ package ip3366
 import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/util"
+	"context"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -12,16 +14,29 @@ import (
 )
 
 //nolint:revive
-func Ip3366() []*database.IP {
+func Ip3366(ctx context.Context) []*database.IP {
 	list := make([]*database.IP, 0)
-	// 国内高匿代理
-	list = append(list, ip3366(1)...)
-	// 国内普通代理
-	list = append(list, ip3366(2)...)
+
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		// 国内高匿代理
+		list = append(list, ip3366(ctx, 1)...)
+	}()
+	go func() {
+		defer wg.Done()
+		// 国内普通代理
+		list = append(list, ip3366(ctx, 2)...)
+	}()
+
+	wg.Wait()
+
 	return list
 }
 
-func ip3366(proxyType int) []*database.IP {
+func ip3366(ctx context.Context, proxyType int) []*database.IP {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
@@ -31,7 +46,7 @@ func ip3366(proxyType int) []*database.IP {
 	list := make([]*database.IP, 0, 1024) // 预分配
 	indexURL := "http://www.ip3366.net/free"
 
-	doc, _, err := util.Fetch(indexURL)
+	doc, _, err := util.Fetch(ctx, indexURL)
 	if err != nil {
 		log.Errorf("ip3366 fetch index error: %v", err)
 		return list
@@ -45,7 +60,7 @@ func ip3366(proxyType int) []*database.IP {
 
 	for i := 1; i <= pageNum; i++ {
 		url := fmt.Sprintf("%s/?stype=%d&page=%d", indexURL, proxyType, i)
-		docPage, _, err := util.Fetch(url)
+		docPage, _, err := util.Fetch(ctx, url)
 		if err != nil {
 			log.Errorf("ip3366 fetch %s error: %v", url, err)
 			continue

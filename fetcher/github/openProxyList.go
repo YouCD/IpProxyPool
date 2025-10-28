@@ -2,18 +2,16 @@ package github
 
 import (
 	"IpProxyPool/middleware/database"
+	"context"
 )
 
-func OpenProxyList() []*database.IP {
-	list := make([]*database.IP, 0)
+func OpenProxyList(ctx context.Context) []*database.IP {
 	name := "OpenProxyList"
-	// https
-	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/https.txt"))...)
-	// http
-	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/http.txt"))...)
-	// socks5
-	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/socks5.txt"))...)
-	//	 socks4
-	list = append(list, fetch(NewProxyWeb(name, "https://api.openproxylist.xyz/socks4.txt"))...)
-	return list
+	urls := []string{
+		"https://api.openproxylist.xyz/https.txt",
+		"https://api.openproxylist.xyz/http.txt",
+		"https://api.openproxylist.xyz/socks5.txt",
+		"https://api.openproxylist.xyz/socks4.txt",
+	}
+	return fetchBatch(ctx, name, urls...)
 }

@@ -2,18 +2,18 @@ package github
 
 import (
 	"IpProxyPool/middleware/database"
+	"context"
 )
 
-func Yemixzy() []*database.IP {
-	list := make([]*database.IP, 0)
+func Yemixzy(ctx context.Context) []*database.IP {
 	name := "yemixzy"
-	// http
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/http.txt"))...)
-	// socks5
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks5.txt"))...)
-	//	 socks4
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks4.txt"))...)
-	//	 unchecked
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/unchecked.txt"))...)
-	return list
+
+	urls := []string{
+		"https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/http.txt",
+		"https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks5.txt",
+		"https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks4.txt",
+		"https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/unchecked.txt",
+	}
+
+	return fetchBatch(ctx, name, urls...)
 }

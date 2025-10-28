@@ -3,6 +3,7 @@ package proxylistplus
 import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/util"
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -11,12 +12,12 @@ import (
 	"github.com/youcd/toolkit/log"
 )
 
-func ProxyListPlus() []*database.IP {
+func ProxyListPlus(ctx context.Context) []*database.IP {
 	list := make([]*database.IP, 0, 512) // 预分配
 	indexURL := "https://list.proxylistplus.com"
 	for i := 1; i <= 6; i++ {
 		url := fmt.Sprintf("%s/Fresh-HTTP-Proxy-List-%d", indexURL, i)
-		doc, _, err := util.Fetch(url)
+		doc, _, err := util.Fetch(ctx, url)
 		if err != nil {
 			log.Errorf("[proxylistplus] fetch failed: %v", err)
 			continue // 不要 return，跳过即可

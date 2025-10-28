@@ -2,6 +2,7 @@ package github
 
 import (
 	"IpProxyPool/middleware/config"
+	"context"
 	"fmt"
 	"testing"
 
@@ -16,7 +17,7 @@ func init() {
 	log.SetLogLevel(setting.Log.Level)
 }
 func TestOpenProxyList(t *testing.T) {
-	for _, ipObj := range OpenProxyList() {
+	for _, ipObj := range OpenProxyList(context.Background()) {
 		fmt.Printf("%#v\n", ipObj)
 	}
 }

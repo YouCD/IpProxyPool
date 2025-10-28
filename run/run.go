@@ -8,14 +8,15 @@ import (
 	"IpProxyPool/fetcher/proxylistplus"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
-	"fmt"
+	"context"
 	"sync"
+	"time"
 
 	"github.com/robfig/cron/v3"
 	"github.com/youcd/toolkit/log"
 )
 
-func Task() {
+func Task(ctx context.Context) {
 	ipChan := make(chan *database.IP, 2000)
 
 	// 循环检测数据库中的IP
@@ -29,39 +30,36 @@ func Task() {
 
 	// Check the IPs in channel
 	numConsumers := 30 // 设置消费者数量
+	log.Debugf("Starting consumer total %d", numConsumers)
 	for i := range numConsumers {
 		go func(consumerID int) {
-			log.Debugf("Starting consumer %d", consumerID)
 			for {
 				ip := <-ipChan
 				if ip == nil {
 					log.Warnf("Consumer %d received nil IP, skipping...", consumerID)
 					continue
 				}
-				proxyStr := fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort)
-				log.Debugf("Consumer %d checking IP: %s", consumerID, proxyStr)
-				storage.CheckProxy(ip)
+				log.Infow("CheckProxy", "consumerID", consumerID, "ipChan len", len(ipChan), "msg", storage.CheckProxy(ip))
 			}
 		}(i)
 	}
 
 	go func() {
 		c := cron.New()
-		_, _ = c.AddFunc("*/5 * * * *", func() {
+		_, _ = c.AddFunc("*/1 * * * *", func() {
 			nums := database.CountIP()
 			log.Infof("count for Chan: %v, count for database : %d", len(ipChan), nums)
-			run(ipChan)
+			run(ctx, ipChan)
 		})
 		c.Start()
 	}()
 }
 
-func run(ipChan chan<- *database.IP) {
+func run(ctx context.Context, ipChan chan<- *database.IP) {
 	var wg sync.WaitGroup
 
-	type fetcher func() []*database.IP
+	type fetcher func(ctx context.Context) []*database.IP
 	siteFuncList := map[string]fetcher{
-		// "66ip":          ip66.Ip66,
 		"89ip":              ip89.Ip89,
 		"ip3366":            ip3366.Ip3366,
 		"proxylistplus":     proxylistplus.ProxyListPlus,
@@ -76,19 +74,28 @@ func run(ipChan chan<- *database.IP) {
 		"Anonym0usWork1221": github.Anonym0usWork1221,
 		"Zenjahid":          github.Zenjahid,
 		"ProxyScraper":      github.ProxyScraper,
+		"R00tee":            github.R00tee,
 	}
-
+	// --- 2. 设置上下文 + 控制参数 ---
 	for name, siteFunc := range siteFuncList {
 		wg.Add(1)
 		go func(name string, fetcherFunc fetcher) {
-			defer wg.Done()
-			temp := fetcherFunc()
+			timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer func() {
+				cancel()
+				wg.Done()
+			}()
+			temp := fetcherFunc(timeoutCtx)
 			log.Infof("[%s] Get IP: %d", name, len(temp))
 			for _, ip := range temp {
-				proxyStr := fmt.Sprintf("%s:%d", ip.ProxyHost, ip.ProxyPort)
-				log.Debugf("[%s] Send proxy: %s", name, proxyStr)
-				ipChan <- ip
-				log.Debugf("[%s] Send OK: %s", name, proxyStr)
+				select {
+				case <-ctx.Done():
+					log.Warnf("[%s] canceled before sending ip", name)
+					return
+				case ipChan <- ip:
+				case <-time.After(2 * time.Second):
+					log.Warnf("send timeout, channel likely full: %s, len: %d", "ipChan", len(ipChan))
+				}
 			}
 		}(name, siteFunc)
 	}

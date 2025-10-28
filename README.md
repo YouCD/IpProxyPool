@@ -52,6 +52,7 @@
 - [Anonym0usWork1221](https://github.com/Anonym0usWork1221/Free-Proxies)![last-commit](https://img.shields.io/github/last-commit/Anonym0usWork1221/Free-Proxies)
 - [zenjahid](https://github.com/zenjahid/FreeProxy4u) ![last-commit](https://img.shields.io/github/last-commit/zenjahid/FreeProxy4u)
 - [ProxyScraper](https://github.com/ProxyScraper/ProxyScraper) ![last-commit](https://img.shields.io/github/last-commit/ProxyScraper/ProxyScraper)
+- [r00tee](https://github.com/r00tee/Proxy-List) ![last-commit](https://img.shields.io/github/last-commit/r00tee/Proxy-List)
   
 
 ## 安装及使用

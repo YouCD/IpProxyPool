@@ -1,17 +1,17 @@
 package github
 
 import (
-	"fmt"
+	"context"
 	"testing"
 
 	"github.com/youcd/toolkit/log"
 )
 
 func init() {
-	log.Init(nil)
+
 }
 func TestFreeProxyList(t *testing.T) {
-	for _, ip := range FreeProxyList() {
-		fmt.Println(ip)
+	for _, ip := range FreeProxyList(context.Background()) {
+		log.Infof("%#v", ip)
 	}
 }

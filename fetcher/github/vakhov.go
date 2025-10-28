@@ -2,18 +2,18 @@ package github
 
 import (
 	"IpProxyPool/middleware/database"
+	"context"
 )
 
-func Vakhov() []*database.IP {
-	list := make([]*database.IP, 0)
+func Vakhov(ctx context.Context) []*database.IP {
 	name := "Vakhov"
 
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/https.txt"))...)
+	urls := []string{
+		"https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/https.txt",
+		"https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt",
+		"https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks4.txt",
+		"https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt",
+	}
 
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt"))...)
-
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks4.txt"))...)
-
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt"))...)
-	return list
+	return fetchBatch(ctx, name, urls...)
 }

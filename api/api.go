@@ -16,7 +16,7 @@ import (
 )
 
 // Run for request
-func Run(setting *config.System) {
+func Run(ctx context.Context, setting *config.System) {
 	mux := http.NewServeMux()
 	// 手动注册 pprof 处理函数到您的 mux
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -44,17 +44,32 @@ func Run(setting *config.System) {
 	log.Infof("- Local:   http://localhost:%s ", setting.HttpPort)
 	log.Infof("- Network: http://%s:%s ", util.GetLocalHost(), setting.HttpPort)
 
-	err := server.ListenAndServe()
-	//nolint:err113
-	if err != nil && err != http.ErrServerClosed {
-		log.Panic("listen: ", err)
+	// 使用 goroutine 启动服务器
+	serverErrChan := make(chan error, 1)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			serverErrChan <- err
+		}
+		close(serverErrChan)
+	}()
+
+	// 等待信号或服务器错误
+	select {
+	case <-ctx.Done():
+		log.Info("Received shutdown signal")
+	case err := <-serverErrChan:
+		if err != nil {
+			log.Panic("Server error: ", err)
+		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
+	// 执行服务器关闭
 	server.SetKeepAlivesEnabled(false)
-	errs := server.Shutdown(ctx)
-	if errs != nil {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if errs := server.Shutdown(shutdownCtx); errs != nil {
 		log.Info("Server Shutdown:", errs)
 		fmt.Println("Server Shutdown:", errs)
 	}

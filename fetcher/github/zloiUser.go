@@ -5,28 +5,41 @@ import (
 	"IpProxyPool/util"
 	"bufio"
 	"bytes"
+	"context"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/youcd/toolkit/log"
 )
 
-func ZloiUser() []*database.IP {
+func ZloiUser(ctx context.Context) []*database.IP {
 	list := make([]*database.IP, 0)
-
 	name := "zloiUser"
-	list = append(list, hideIPMeFetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/https.txt"))...)
 
-	list = append(list, hideIPMeFetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks4.txt"))...)
+	var wg sync.WaitGroup
+	urls := []string{
+		"https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/https.txt",
+		"https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks4.txt",
+		"https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks5.txt",
+	}
 
-	list = append(list, hideIPMeFetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zloi-user/hideip.me/refs/heads/master/socks5.txt"))...)
+	for _, url := range urls {
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
+			list = append(list, hideIPMeFetch(ctx, NewProxyWeb(name, url))...)
+		}(url)
+	}
+	wg.Wait()
+
 	return list
 }
-func hideIPMeFetch(urlStr *ProxyWeb) []*database.IP {
+func hideIPMeFetch(ctx context.Context, urlStr *ProxyWeb) []*database.IP {
 	list := make([]*database.IP, 0, 256)
 
-	doc, _, err := util.Fetch(urlStr.GetFullURL())
+	doc, _, err := util.Fetch(ctx, urlStr.GetFullURL())
 	if err != nil {
 		log.Errorf("hideip.me fetch %s error: %v", urlStr.GetFullURL(), err)
 		return list

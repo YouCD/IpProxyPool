@@ -2,17 +2,17 @@ package github
 
 import (
 	"IpProxyPool/middleware/database"
+	"context"
 )
 
-func ProxyScraper() []*database.IP {
-	list := make([]*database.IP, 0)
+func ProxyScraper(ctx context.Context) []*database.IP {
 	name := "ProxyScraper"
 
-	// http
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/ProxyScraper/ProxyScraper/main/http.txt"))...)
-	// socks4
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/ProxyScraper/ProxyScraper/main/socks4.txt"))...)
-	// socks5
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/ProxyScraper/ProxyScraper/main/socks5.txt"))...)
-	return list
+	urls := []string{
+		"https://raw.githubusercontent.com/ProxyScraper/ProxyScraper/main/http.txt",
+		"https://raw.githubusercontent.com/ProxyScraper/ProxyScraper/main/socks4.txt",
+		"https://raw.githubusercontent.com/ProxyScraper/ProxyScraper/main/socks5.txt",
+	}
+
+	return fetchBatch(ctx, name, urls...)
 }

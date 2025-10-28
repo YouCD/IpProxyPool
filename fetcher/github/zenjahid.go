@@ -2,17 +2,16 @@ package github
 
 import (
 	"IpProxyPool/middleware/database"
+	"context"
 )
 
-func Zenjahid() []*database.IP {
-	list := make([]*database.IP, 0)
+func Zenjahid(ctx context.Context) []*database.IP {
 	name := "zenjahid"
-	// http
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zenjahid/FreeProxy4u/main/http.txt"))...)
-	// socks4
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zenjahid/FreeProxy4u/main/socks4.txt"))...)
-	// socks5
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/zenjahid/FreeProxy4u/main/socks5.txt"))...)
+	urls := []string{
+		"https://raw.githubusercontent.com/zenjahid/FreeProxy4u/main/http.txt",
+		"https://raw.githubusercontent.com/zenjahid/FreeProxy4u/main/socks4.txt",
+		"https://raw.githubusercontent.com/zenjahid/FreeProxy4u/main/socks5.txt",
+	}
 
-	return list
+	return fetchBatch(ctx, name, urls...)
 }

@@ -6,10 +6,14 @@ import (
 	"IpProxyPool/middleware/config"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/run"
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/youcd/toolkit/log"
 )
 
 const name = "IpProxyPool"
@@ -28,14 +32,18 @@ var rootCmd = &cobra.Command{
 		// 初始化数据库连接
 		database.InitDB(&setting.Database)
 
-		// Start HTTP
-		go func() {
-			api.Run(&setting.System)
+		// 信号处理应该放在服务器启动之后
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer func() {
+			log.Info("shutting down server")
+			stop()
 		}()
+		// Start HTTP
+		go func(ctx context.Context) {
+			run.Task(ctx)
+		}(ctx)
 
-		// Start Task
-		run.Task()
-		select {}
+		api.Run(ctx, &setting.System)
 	},
 }
 

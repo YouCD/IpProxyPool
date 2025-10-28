@@ -3,6 +3,7 @@ package ip89
 import (
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/util"
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/youcd/toolkit/log"
 )
 
-func Ip89() []*database.IP {
+func Ip89(ctx context.Context) []*database.IP {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
@@ -21,7 +22,7 @@ func Ip89() []*database.IP {
 	list := make([]*database.IP, 0, 512)
 	indexURL := "https://www.89ip.cn"
 
-	doc, _, err := util.Fetch(indexURL)
+	doc, _, err := util.Fetch(ctx, indexURL)
 	if err != nil {
 		log.Errorf("89ip fetch index error: %v", err)
 		return list
@@ -35,7 +36,7 @@ func Ip89() []*database.IP {
 
 	for i := 1; i <= pageNum; i++ {
 		url := fmt.Sprintf("%s/index_%d.html", indexURL, i)
-		docPage, _, err := util.Fetch(url)
+		docPage, _, err := util.Fetch(ctx, url)
 		if err != nil {
 			log.Errorf("89ip fetch %s error: %v", url, err)
 			continue

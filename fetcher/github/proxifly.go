@@ -5,30 +5,42 @@ import (
 	"IpProxyPool/util"
 	"bufio"
 	"bytes"
-	"strconv"
+	"context"
+	"net/url"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/spf13/cast"
 	"github.com/youcd/toolkit/log"
 )
 
-func FreeProxyList() []*database.IP {
+func FreeProxyList(ctx context.Context) []*database.IP {
 	list := make([]*database.IP, 0)
 	name := "FreeProxyList"
-	socks5Url := NewProxyWeb(name, "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt")
-	list = append(list, freeProxyListFetch(socks5Url, "socks5://")...)
+	var wg sync.WaitGroup
+	urls := []string{
+		"https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt",
+		"https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks4/data.txt",
+		"https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt",
+		"https://raw.githubusercontent.com/proxifly/free-proxy-list/refs/heads/main/proxies/countries/US/data.txt",
+	}
 
-	socks4Url := NewProxyWeb(name, "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks4/data.txt")
-	list = append(list, freeProxyListFetch(socks4Url, "socks4://")...)
+	for _, u := range urls {
+		wg.Add(1)
+		go func(u string) {
+			defer wg.Done()
+			list = append(list, freeProxyListFetch(ctx, NewProxyWeb(name, u))...)
+		}(u)
+	}
+	wg.Wait()
 
-	httpURL := NewProxyWeb(name, "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt")
-	list = append(list, freeProxyListFetch(httpURL, "http://")...)
 	return list
 }
-func freeProxyListFetch(urlStr *ProxyWeb, replaceStr string) []*database.IP {
+func freeProxyListFetch(ctx context.Context, urlStr *ProxyWeb) []*database.IP {
 	list := make([]*database.IP, 0, 256)
 
-	doc, _, err := util.Fetch(urlStr.GetFullURL())
+	doc, _, err := util.Fetch(ctx, urlStr.GetFullURL())
 	if err != nil {
 		log.Errorf("%s fetch error: %v", urlStr.Name, err)
 		return list
@@ -41,17 +53,17 @@ func freeProxyListFetch(urlStr *ProxyWeb, replaceStr string) []*database.IP {
 		if line == "" {
 			continue
 		}
-		line = strings.ReplaceAll(line, replaceStr, "")
-		parts := strings.Split(line, ":")
-		if len(parts) < 2 {
+		parse, err := url.Parse(line)
+		if err != nil {
+			log.Error("free-proxy-list parse error: %v", err)
 			continue
 		}
 
-		port, _ := strconv.Atoi(parts[1])
 		list = append(list, &database.IP{
-			ProxyHost:     parts[0],
-			ProxyPort:     port,
+			ProxyHost:     parse.Host,
+			ProxyPort:     cast.ToInt(parse.Port()),
 			ProxyLocation: "free-proxy-list",
+			ProxyType:     parse.Scheme,
 			ProxySpeed:    100,
 			ProxySource:   "https://github.com/proxifly/free-proxy-list",
 			CreateTime:    time.Now(),

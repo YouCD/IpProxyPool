@@ -2,17 +2,17 @@ package github
 
 import (
 	"IpProxyPool/middleware/database"
+	"context"
 )
 
-func TheSpeedX() []*database.IP {
-	list := make([]*database.IP, 0)
-
+func TheSpeedX(ctx context.Context) []*database.IP {
 	name := "TheSpeedX"
 
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt"))...)
+	urls := []string{
+		"https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt",
+		"https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt",
+		"https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt",
+	}
 
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt"))...)
-
-	list = append(list, fetch(NewProxyWeb(name, "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt"))...)
-	return list
+	return fetchBatch(ctx, name, urls...)
 }

@@ -2,6 +2,7 @@ package geonode
 
 import (
 	"IpProxyPool/middleware/database"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -39,7 +40,7 @@ type resp struct {
 	Data []item `json:"data"`
 }
 
-func Geonode() []*database.IP {
+func Geonode(ctx context.Context) []*database.IP {
 	const url = "https://proxylist.geonode.com/api/proxy-list?protocols=socks5&limit=500&page=1&sort_by=lastChecked&sort_type=desc"
 
 	// 1. 原生 http 拿字节流，不走进 goquery

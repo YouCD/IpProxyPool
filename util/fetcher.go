@@ -43,13 +43,13 @@ func GetClient() *http.Client {
 	})
 	return client
 }
-func Fetch(url string) (*goquery.Document, []byte, error) {
+func Fetch(ctx context.Context, url string) (*goquery.Document, []byte, error) {
 	log.Debugf("Fetch url: %s", url)
 	var count int
 Retry:
 	//nolint:gosec
 	client := GetClient()
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("Proxy-Switch-Ip", "yes")
 	req.Header.Set("User-Agent", RandomUserAgent())
 	req.Header.Set("Access-Control-Allow-Origin", "*")

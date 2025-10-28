@@ -28,11 +28,10 @@ var (
 )
 
 // CheckProxy .
-func CheckProxy(ip *database.IP) {
+func CheckProxy(ip *database.IP) string {
 	now := time.Now()
 	if ip == nil {
-		log.Error("CheckProxy empty ip")
-		return
+		return "CheckProxy empty ip"
 	}
 	var flag bool
 	if item, ok := CheckIP(ip); ok {
@@ -43,7 +42,7 @@ func CheckProxy(ip *database.IP) {
 	if ip.ProxyType != "" {
 		msg = fmt.Sprintf("Checking proxy: %s://%s:%d, isOK: %t, Duration: %s", strings.ToLower(ip.ProxyType), ip.ProxyHost, ip.ProxyPort, flag, time.Since(now))
 	}
-	log.Infof(msg)
+	return msg
 }
 
 // CheckIP

@@ -29,7 +29,7 @@ func Task(ctx context.Context) {
 	}()
 
 	// Check the IPs in channel
-	numConsumers := 10 // 减少消费者数量以降低并发压力
+	numConsumers := 50 // 减少消费者数量以降低并发压力
 	log.Debugf("Starting consumer total %d", numConsumers)
 	for i := range numConsumers {
 		go func(consumerID int) {
@@ -51,10 +51,13 @@ func Task(ctx context.Context) {
 
 	go func() {
 		c := cron.New()
-		_, _ = c.AddFunc("*/1 * * * *", func() {
+		_, _ = c.AddFunc("*/5 * * * *", func() {
 			nums := database.CountIP()
 			log.Infof("count for Chan: %v, count for database : %d", len(ipChan), nums)
+			now := time.Now()
+			// 抓取 IP
 			run(ctx, ipChan)
+			log.Infof("All getters finished. runTime: %s", time.Since(now))
 		})
 		c.Start()
 	}()
@@ -98,7 +101,7 @@ func run(ctx context.Context, ipChan chan<- *database.IP) {
 				wg.Done()
 			}()
 
-			timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 			defer cancel()
 
 			temp := fetcherFunc(timeoutCtx)
@@ -109,12 +112,11 @@ func run(ctx context.Context, ipChan chan<- *database.IP) {
 					log.Warnf("[%s] canceled before sending ip", name)
 					return
 				case ipChan <- ip:
-				case <-time.After(2 * time.Second):
+				case <-time.After(10 * time.Second):
 					log.Warnf("send timeout, channel likely full: %s, len: %d", "ipChan", len(ipChan))
 				}
 			}
 		}(name, siteFunc)
 	}
 	wg.Wait()
-	log.Info("All getters finished.")
 }

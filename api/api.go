@@ -4,7 +4,6 @@ import (
 	"IpProxyPool/middleware/config"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/middleware/storage"
-	"IpProxyPool/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -37,9 +36,7 @@ func Run(ctx context.Context, setting *config.System) {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Infof("Server run at:")
-	log.Infof("- Local:   http://localhost:%s ", setting.HttpPort)
-	log.Infof("- Network: http://%s:%s ", util.GetLocalHost(), setting.HttpPort)
+	log.Infof("Server run at: http://%s:%s", setting.HttpAddr, setting.HttpPort)
 
 	// 使用 goroutine 启动服务器
 	serverErrChan := make(chan error, 1)

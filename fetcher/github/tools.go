@@ -1,6 +1,7 @@
 package github
 
 import (
+	"IpProxyPool/middleware/config"
 	"IpProxyPool/middleware/database"
 	"IpProxyPool/util"
 	"bufio"
@@ -36,28 +37,29 @@ func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 	}
 
 	const (
-		workers    = 5   // 进一步减少并发数，从20到5
-		chanBuffer = 50  // 减少缓冲区大小，避免内存堆积
+		workers    = 100  // 进一步减少并发数，从20到5
+		chanBuffer = 1000 // 减少缓冲区大小，避免内存堆积
 	)
 	lineCh := make(chan string, chanBuffer)
 	ipCh := make(chan *database.IP, chanBuffer)
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	go func(ctx context.Context) {
-		ticker := time.NewTicker(time.Second * 10)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				log.Infof("[%s] ipCh len=%d lineCh len=%d goroutines=%d",
-					proxyWeb.Name, len(ipCh), len(lineCh), runtime.NumGoroutine())
+	if strings.ToLower(config.ServerSetting.Log.Mode) == "debug" {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		go func(ctx context.Context) {
+			ticker := time.NewTicker(time.Second * 10)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					log.Debugf("[%s] ipCh len=%d lineCh len=%d goroutines=%d",
+						proxyWeb.Name, len(ipCh), len(lineCh), runtime.NumGoroutine())
+				}
 			}
-		}
-	}(ctx)
+		}(ctx)
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(workers)
 
@@ -190,7 +192,7 @@ finish:
 func fetchBatch(ctx context.Context, name string, urls ...string) []*database.IP {
 	list := make([]*database.IP, 0)
 	var wg sync.WaitGroup
-	
+
 	// 限制并发获取URL的数量
 	const maxConcurrentFetches = 3
 	semaphore := make(chan struct{}, maxConcurrentFetches)

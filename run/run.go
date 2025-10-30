@@ -29,7 +29,7 @@ func Task(ctx context.Context) {
 	}()
 
 	// Check the IPs in channel
-	numConsumers := 30 // 设置消费者数量
+	numConsumers := 10 // 减少消费者数量以降低并发压力
 	log.Debugf("Starting consumer total %d", numConsumers)
 	for i := range numConsumers {
 		go func(consumerID int) {
@@ -43,7 +43,7 @@ func Task(ctx context.Context) {
 						log.Warnf("Consumer %d received nil IP, skipping...", consumerID)
 						continue
 					}
-					log.Infow("CheckProxy", "consumerID", consumerID, "ipChan len", len(ipChan), "msg", storage.CheckProxy(ctx, ip))
+					log.Debugw("CheckProxy", "consumerID", consumerID, "ipChan len", len(ipChan), "msg", storage.CheckProxy(ctx, ip))
 				}
 			}
 		}(i)
@@ -81,20 +81,31 @@ func run(ctx context.Context, ipChan chan<- *database.IP) {
 		"ProxyScraper":      github.ProxyScraper,
 		"R00tee":            github.R00tee,
 	}
+
+	// 限制并发数量，避免创建过多 goroutine
+	maxConcurrency := 5 // 减小并发数量
+	semaphore := make(chan struct{}, maxConcurrency)
+
 	// --- 2. 设置上下文 + 控制参数 ---
 	for name, siteFunc := range siteFuncList {
 		wg.Add(1)
 		go func(name string, fetcherFunc fetcher) {
-			timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			// 获取信号量
+			semaphore <- struct{}{}
 			defer func() {
-				cancel()
+				// 释放信号量
+				<-semaphore
 				wg.Done()
 			}()
+
+			timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer cancel()
+
 			temp := fetcherFunc(timeoutCtx)
 			log.Infof("[%s] Get IP: %d", name, len(temp))
 			for _, ip := range temp {
 				select {
-				case <-ctx.Done():
+				case <-timeoutCtx.Done():
 					log.Warnf("[%s] canceled before sending ip", name)
 					return
 				case ipChan <- ip:

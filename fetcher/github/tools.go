@@ -36,14 +36,17 @@ func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 	}
 
 	const (
-		workers    = 100  // 并发数，可根据网络情况调整
-		chanBuffer = 1000 // 限制通道容量，避免内存堆积
+		workers    = 5   // 进一步减少并发数，从20到5
+		chanBuffer = 50  // 减少缓冲区大小，避免内存堆积
 	)
 	lineCh := make(chan string, chanBuffer)
 	ipCh := make(chan *database.IP, chanBuffer)
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(time.Second * 5)
+		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
 		for {
 			select {
@@ -104,8 +107,12 @@ func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 					}:
 					case <-time.After(2 * time.Second):
 						log.Warnf("send timeout, channel likely full: %s, len: %d", "ipCh", len(ipCh))
+						return // 添加超时返回机制
 					}
 				case <-ctx.Done():
+					return
+				case <-time.After(5 * time.Second):
+					// 防止长时间阻塞
 					return
 				}
 			}
@@ -135,32 +142,65 @@ func fetch(ctx context.Context, proxyWeb *ProxyWeb) []*database.IP {
 			case lineCh <- addr:
 			case <-time.After(2 * time.Second):
 				log.Warnf("send timeout, channel likely full: %s, len: %d", "lineCh", len(lineCh))
+				return // 添加超时返回机制
 			}
 		}
 	}()
 
 	// --- 5. 收集结果 ---
+	done := make(chan struct{})
 	go func() {
 		wg.Wait()
 		close(ipCh)
+		close(done)
 	}()
 
 	list := make([]*database.IP, 0, len(ipCh))
-	for ip := range ipCh {
-		list = append(list, ip)
+	for {
+		select {
+		case ip, ok := <-ipCh:
+			if !ok {
+				// Channel closed, all IPs collected
+				goto finish
+			}
+			list = append(list, ip)
+		case <-done:
+			// Workers finished, collect remaining IPs
+			for {
+				select {
+				case ip, ok := <-ipCh:
+					if !ok {
+						goto finish
+					}
+					list = append(list, ip)
+				default:
+					goto finish
+				}
+			}
+		case <-ctx.Done():
+			goto finish
+		}
 	}
 
-	log.Infof("[%s] fetched %d valid IPs", proxyWeb.Name, len(list))
+finish:
+	log.Debugf("[%s] fetched %d valid IPs", proxyWeb.Name, len(list))
 	return list
 }
+
 func fetchBatch(ctx context.Context, name string, urls ...string) []*database.IP {
 	list := make([]*database.IP, 0)
 	var wg sync.WaitGroup
+	
+	// 限制并发获取URL的数量
+	const maxConcurrentFetches = 3
+	semaphore := make(chan struct{}, maxConcurrentFetches)
 
 	for _, url := range urls {
 		wg.Add(1)
+		semaphore <- struct{}{} // 获取信号量
 		go func(ctx context.Context, url string) {
 			defer wg.Done()
+			defer func() { <-semaphore }() // 释放信号量
 			list = append(list, fetch(ctx, NewProxyWeb(name, url))...)
 		}(ctx, url)
 	}

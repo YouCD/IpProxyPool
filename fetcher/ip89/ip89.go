@@ -30,8 +30,8 @@ func IP89(ctx context.Context) []*database.IP {
 
 	pageStr := util.FastText(doc.Find("#layui-laypage-1 > a:nth-child(7)"))
 	pageNum, _ := strconv.Atoi(pageStr)
-	if pageNum > 50 { // 站点实际 50 页左右，防止被反爬
-		pageNum = 50
+	if pageNum > 5 { // 减少页面数量，防止被反爬和超时
+		pageNum = 5
 	}
 
 	for i := 1; i <= pageNum; i++ {
@@ -62,6 +62,13 @@ func IP89(ctx context.Context) []*database.IP {
 				UpdateTime:    time.Now(),
 			})
 		})
+		
+		// 添加页面间延迟，避免请求过于频繁
+		select {
+		case <-ctx.Done():
+			return list
+		case <-time.After(1 * time.Second):
+		}
 	}
 	return list
 }

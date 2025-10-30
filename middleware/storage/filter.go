@@ -98,12 +98,11 @@ func checkIP(ctx context.Context, ip *database.IP) *database.IP {
 		}
 	}
 
-	wg.Add(5)
+	// 减少并发检查的数量，从5个减少到2个
+	wg.Add(2)
 	go sendResult(ctx, "https", isHTTPSProxy)
 	go sendResult(ctx, "http", isHTTPProxy)
-	go sendResult(ctx, "socks5", isSocks5Proxy)
-	go sendResult(ctx, "socks4", isSocks4Proxy)
-	go sendResult(ctx, "tcp", isTCPProxy)
+	// 移除部分代理类型检测以降低并发数
 
 	go func() {
 		wg.Wait()         // Wait for all goroutines to finish
@@ -148,10 +147,10 @@ func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 		DialContext:           dialer.DialContext,
 		Proxy:                 http.ProxyURL(proxy),
 		DisableKeepAlives:     true,
-		MaxConnsPerHost:       20,
-		MaxIdleConns:          20,
-		MaxIdleConnsPerHost:   20,
-		IdleConnTimeout:       20 * time.Second,
+		MaxConnsPerHost:       5, // 减少连接数
+		MaxIdleConns:          5, // 减少空闲连接数
+		MaxIdleConnsPerHost:   5, // 减少每个host的空闲连接数
+		IdleConnTimeout:       10 * time.Second, // 减少空闲连接超时时间
 		ResponseHeaderTimeout: time.Second * time.Duration(10),
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 		// DialTLSContext: func(_ context.Context, network, addr string) (net.Conn, error) {
@@ -162,6 +161,7 @@ func requestHTTPBIN(ip *database.IP, testURL string, scheme string) bool {
 	// 创建连接客户端
 	httpClient := &http.Client{
 		Transport: netTransport,
+		Timeout:   10 * time.Second, // 减少整体请求超时时间
 	}
 
 	begin := time.Now() // 判断代理访问时间
@@ -190,10 +190,22 @@ func CheckProxyDB(ctx context.Context) {
 	beforeRecord := database.CountIP()
 	ips := database.GetAllIP()
 	var wg sync.WaitGroup
+	
+	// 限制并发检查的数量，避免创建过多 goroutine
+	maxConcurrency := 20 // 减少并发数从50到20
+	semaphore := make(chan struct{}, maxConcurrency)
+	
 	for _, v := range ips {
 		wg.Add(1)
 		go func(ip *database.IP) {
-			defer wg.Done()
+			// 获取信号量
+			semaphore <- struct{}{}
+			defer func() {
+				// 释放信号量
+				<-semaphore
+				wg.Done()
+			}()
+			
 			newIP, ok := CheckIP(ctx, ip)
 			if !ok {
 				log.Warnf("CheckProxyDB proxy: %s, error: %s", ip.ProxyHost, ErrNotAvailable)

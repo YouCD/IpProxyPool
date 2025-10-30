@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -29,6 +30,13 @@ var rootCmd = &cobra.Command{
 		}
 		setting := config.ServerSetting
 
+		// 限制最大使用的CPU核心数，避免过度并发
+		maxProcs := runtime.NumCPU()
+		if maxProcs > 4 {
+			maxProcs = 4 // 限制最大并发核心数为4
+		}
+		runtime.GOMAXPROCS(maxProcs)
+		
 		// 信号处理应该放在服务器启动之后
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer func() {

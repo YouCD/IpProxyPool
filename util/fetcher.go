@@ -32,13 +32,13 @@ func GetClient() *http.Client {
 		}
 		client = &http.Client{
 			Jar:     jar,
-			Timeout: 100 * time.Second,
+			Timeout: 30 * time.Second, // 减少超时时间
 			Transport: &http.Transport{
 				//nolint:gosec
 				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 				MaxIdleConns:        100,
 				MaxIdleConnsPerHost: 10,
-				IdleConnTimeout:     90 * time.Second,
+				IdleConnTimeout:     30 * time.Second, // 减少空闲连接超时时间
 			},
 		}
 	})
@@ -60,47 +60,45 @@ Retry:
 	req.Header.Set("Content-Type", "text/html; charset=UTF-8")
 
 	resp, err := client.Do(req)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			count++
+			if count <= 3 {
+				goto Retry
+			}
+		}
+		return nil, nil, fmt.Errorf("fetch url: %s, error: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		count++
-		if count < 3 {
-			time.Sleep(time.Second * 1)
+		if count <= 3 {
 			goto Retry
 		}
-		return nil, nil, fmt.Errorf("http get error: %w", err)
+		return nil, nil, fmt.Errorf("fetch url: %s, status code: %d", url, resp.StatusCode)
 	}
-	defer func() {
-		if err := recover(); err != nil {
-			log.Errorf("recover get error: %v", err)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read body error: %w", err)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	var reader io.Reader
+	if contentType != "" {
+		reader, err = charset.NewReader(bytes.NewReader(body), contentType)
+		if err != nil {
+			reader = bytes.NewReader(body)
 		}
-	}()
-
-	var newResp io.Reader
-	var charsetErr error
-
-	var doc *goquery.Document
-	var docErr error
-
-	newResp, charsetErr = charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
-	if charsetErr != nil {
-		if errors.Is(charsetErr, io.EOF) {
-			return nil, nil, fmt.Errorf("charset error: %w", charsetErr)
-		}
-		log.Errorf("charset convert failed: %v", charsetErr)
-		return nil, nil, fmt.Errorf("charset convert failed: %w", charsetErr)
-	}
-	var bufer bytes.Buffer
-	_, _ = io.Copy(&bufer, newResp)
-	// 先获取字节数据
-	bt := bufer.Bytes()
-
-	doc, docErr = goquery.NewDocumentFromReader(bytes.NewReader(bt))
-	if docErr != nil {
-		log.Errorf("goquery http response body reader error: %v", docErr)
-		return nil, nil, fmt.Errorf("goquery http response body reader error: %w", docErr)
+	} else {
+		reader = bytes.NewReader(body)
 	}
 
-	return doc, bt, nil
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		return nil, nil, fmt.Errorf("goquery parse error: %w", err)
+	}
+
+	return doc, body, nil
 }
